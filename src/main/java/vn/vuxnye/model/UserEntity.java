@@ -4,12 +4,14 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import vn.vuxnye.common.Gender;
 import vn.vuxnye.common.UserStatus;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -64,12 +66,19 @@ public class UserEntity extends BaseEntity implements UserDetails, Serializable 
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+        if (this.roles == null) {
+            return new ArrayList<>();
+        }
+
+        return this.roles.stream()
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName().toUpperCase()))
+                // Lưu ý: Thêm "ROLE_" và viết hoa để khớp với hasRole('ADMIN')
+                .collect(Collectors.toList());
     }
 
     @Override
     public String getUsername() {
-        return "";
+        return username;
     }
 
     @Override
@@ -91,4 +100,5 @@ public class UserEntity extends BaseEntity implements UserDetails, Serializable 
     public boolean isEnabled() {
         return UserStatus.ACTIVE.equals(status);
     }
+
 }

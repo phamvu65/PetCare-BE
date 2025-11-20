@@ -27,29 +27,26 @@ public class AddressServiceImpl implements AddressService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<AddressResponse> getAddressesByUserId(Long userId) {
-        log.info("Get address list by user ID:{}", userId);
+    public List<AddressResponse> getAddressesByUsername(String username) {
+        log.info("Get address list by username:{}", username);
 
-        if(!userRepository.existsById(userId)){
-            log.warn("User not found for address list (userId: {})", userId);
-            throw new ResourceNotFoundException("User not found");
-        }
-        List<AddressEntity> addressEntityList = addressRepository.findByUserId(userId);
+        UserEntity user = userRepository.findByUsername(username).orElseThrow(()->new ResourceNotFoundException("User not found"));
+
+        List<AddressEntity> addressEntityList = addressRepository.findByUserId(user.getId());
+
        return addressEntityList.stream()
                .map(AddressResponse::new)
                .collect(Collectors.toList());
     }
 
     @Override
-    public AddressResponse getAddressDefaultByUserId(Long userId) {
-        log.info("Get default address by user ID:{}", userId);
+    public AddressResponse getAddressDefaultByUsername(String username) {
+        log.info("Get default address by username:{}", username);
 
-        if(!userRepository.existsById(userId)){
-            log.warn("User not found for address list (userId: {})", userId);
-            throw new ResourceNotFoundException("User not found");
-        }
+        UserEntity user = userRepository.findByUsername(username).orElseThrow(()->new ResourceNotFoundException("User not found"));
 
-        AddressEntity addressEntity= addressRepository.findByUserIdAndIsDefaultTrue(userId)
+
+        AddressEntity addressEntity= addressRepository.findByUserIdAndIsDefaultTrue(user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Address not found"));
 
         return new AddressResponse(addressEntity);
@@ -57,14 +54,14 @@ public class AddressServiceImpl implements AddressService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long addAddress(Long userId, AddressRequest req) {
-        log.info("Add new address for user ID:{}", userId);
+    public Long addAddress(String username, AddressRequest req) {
+        log.info("Add new address for username:{}", username);
 
-        UserEntity user= userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        UserEntity user= userRepository.findByUsername(username).orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Boolean isDefault = (req.getIsDefault()!=null) ? req.getIsDefault() : false;
         if(isDefault){
-            addressRepository.clearOldDefaults(userId);
+            addressRepository.clearOldDefaults(user.getId());
         }
 
         //create Address
@@ -84,14 +81,17 @@ public class AddressServiceImpl implements AddressService {
     }
 
     @Override
-    public void updateAddress(Long addressId, Long userId, AddressRequest req) {
-        log.info("update addressId {} for userId {}", addressId, userId);
+    @Transactional(rollbackFor = Exception.class)
+    public void updateAddress(Long addressId, String username, AddressRequest req) {
+        log.info("update addressId {} for username {}", addressId, username);
 
-        AddressEntity addressToUpdate = addressRepository.findByIdAndUserId(addressId,userId).orElseThrow(() -> new ResourceNotFoundException("Address not found"));
+        UserEntity user= userRepository.findByUsername(username).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        AddressEntity addressToUpdate = addressRepository.findByIdAndUserId(addressId,user.getId()).orElseThrow(() -> new ResourceNotFoundException("Address not found"));
 
         Boolean isDefault = (req.getIsDefault()!=null) ? req.getIsDefault() : false;
         if(isDefault){
-            addressRepository.clearOldDefaults(userId);
+            addressRepository.clearOldDefaults(user.getId());
         }
 
         addressToUpdate.setRecipientName(req.getRecipientName());
@@ -107,14 +107,16 @@ public class AddressServiceImpl implements AddressService {
     }
 
     @Override
-    public void deleteAddress(Long addressId, Long userId) {
-        log.info("delete addressId {} for userId {}", addressId, userId);
+    public void deleteAddress(Long addressId, String username) {
+        log.info("delete addressId {} for username {}", addressId, username);
 
-        AddressEntity addressToDelete = addressRepository.findByIdAndUserId(addressId,userId).orElseThrow(() -> new ResourceNotFoundException("Address not found"));
+        UserEntity user= userRepository.findByUsername(username).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        AddressEntity addressToDelete = addressRepository.findByIdAndUserId(addressId,user.getId()).orElseThrow(() -> new ResourceNotFoundException("Address not found"));
 
         //if delete address default
         if(addressToDelete.getIsDefault()){
-            List<AddressEntity> addressList = addressRepository.findByUserIdAndIdNot(userId, addressId);
+            List<AddressEntity> addressList = addressRepository.findByUserIdAndIdNot(user.getId(), addressId);
             if(!addressList.isEmpty()){
                 addressList.get(0).setIsDefault(true);
                 addressRepository.save(addressList.get(0));

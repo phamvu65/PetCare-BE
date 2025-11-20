@@ -39,7 +39,7 @@ openapi:
     version: 1.0.0
 
 jwt:
-  expiryMinutes: 1
+  expiryMinutes: 60
   expiryDay: 14
   accessKey: f755f118db5972c1e60ba4c60b671278b1702610fb60d6cb926e809f56be96ce
   refreshKey: 6a47ad4b888173a219982ce0cfb91098a360611d4055da9988b8a1451804c261

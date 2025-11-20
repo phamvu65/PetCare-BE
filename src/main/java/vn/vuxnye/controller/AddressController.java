@@ -2,9 +2,14 @@ package vn.vuxnye.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import vn.vuxnye.dto.request.AddressRequest;
@@ -16,21 +21,22 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/user/{userId}/addresses")
+@RequestMapping("addresses")
 @Tag(name = "Address Controller")
 @RequiredArgsConstructor
 @Slf4j(topic = "ADDRESS-CONTROLLER")
 @Validated
+@PreAuthorize("isAuthenticated()")
 public class AddressController {
 
     private final AddressService addressService;
 
-    @GetMapping
+    @GetMapping("/list")
     @Operation(summary = "Get address list",description = "API retrieve address list from db")
-    public Map<String,Object> getAllAddressByUser(@PathVariable @Min(value = 1,message ="UserId must be equals or greater than 1") Long userId) {;
+    public Map<String,Object> getAllAddressByUser(@AuthenticationPrincipal UserDetails userDetails) {;
         log.info("get address list");
 
-        List<AddressResponse> addressList = addressService.getAddressesByUserId(userId);
+        List<AddressResponse> addressList = addressService.getAddressesByUsername(userDetails.getUsername());
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("status", 200);
@@ -40,11 +46,10 @@ public class AddressController {
     }
 
     @GetMapping("/default")
-    @Operation(summary = "Get address default",description = "API retrieve address default by id")
-    public Map<String,Object> getDefaultAddress(@PathVariable @Min(value = 1,message ="UserId must be equals or greater than 1") Long userId) {
-        log.info("Get Address default of user ID:{}", userId);
-
-        AddressResponse addressDefault = addressService.getAddressDefaultByUserId(userId);
+    @Operation(summary = "Get address default",description = "API retrieve default address of current user")
+    public Map<String,Object> getDefaultAddress(@AuthenticationPrincipal UserDetails userDetails) {
+        log.info("User {} requesting get default address", userDetails.getUsername());
+        AddressResponse addressDefault = addressService.getAddressDefaultByUsername(userDetails.getUsername());
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("status", 200);
@@ -54,12 +59,12 @@ public class AddressController {
     }
 
     @Operation(summary = "Create Address",description = "API add new address to db")
-    @PostMapping
-    public Map<String, Object> createAddress(@PathVariable @Min(value = 1,message ="UserId must be equals or greater than 1") Long userId,
-                                             @RequestBody AddressRequest addressRequest) {
-        log.info("Create Address:{}", addressRequest);
+    @PostMapping("/add")
+    public Map<String, Object> createAddress( @Valid @RequestBody AddressRequest addressRequest,
+                                              @AuthenticationPrincipal UserDetails userDetails) {
+        log.info("User {} creating address: {}", userDetails.getUsername(), addressRequest);
 
-        addressService.addAddress(userId, addressRequest);
+        addressService.addAddress(userDetails.getUsername(), addressRequest);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("status", 201);
@@ -69,13 +74,12 @@ public class AddressController {
 
     }
 
-    @PutMapping("/{addressId}")
-    public Map<String, Object> updateAddress(@PathVariable @Min(value = 1,message ="UserId must be equals or greater than 1") Long userId,
-                                             @PathVariable @Min(value = 1,message ="addressId must be equals or greater than 1") Long addressId,
-                                             @RequestBody AddressRequest addressRequest) {
-        log.info("Update ID address: {} for user ID:{}", addressId, userId);
-
-        addressService.updateAddress(userId, addressId, addressRequest);
+    @PutMapping("/upd/{addressId}")
+    public Map<String, Object> updateAddress(@PathVariable @Min(value = 1,message ="addressId must be equals or greater than 1") Long addressId,
+                                             @Valid @RequestBody AddressRequest addressRequest,
+                                             @AuthenticationPrincipal UserDetails userDetails) {
+        log.info("User {} updating address ID: {}", userDetails.getUsername(), addressId);
+        addressService.updateAddress(addressId, userDetails.getUsername(), addressRequest);
 
         Map<String,Object> result = new LinkedHashMap<>();
         result.put("status", 200);
@@ -86,12 +90,12 @@ public class AddressController {
 
 
     @Operation(summary = "Delete Address",description = "API delete address by id")
-    @DeleteMapping("/{addressId}")
-    public Map<String, Object> deleteAddress(@PathVariable @Min(value = 1,message ="UserId must be equals or greater than 1") Long userId,
+    @DeleteMapping("/del/{addressId}")
+    public Map<String, Object> deleteAddress(@AuthenticationPrincipal UserDetails userDetails,
                                              @PathVariable @Min(value = 1,message ="addressId must be equals or greater than 1") Long addressId){
 
-        log.info("Delete ID address: {} for user ID:{}", addressId, userId);
-        addressService.deleteAddress(addressId,userId);
+        log.info("User {} deleting address ID: {}", userDetails.getUsername(), addressId);
+        addressService.deleteAddress(addressId,userDetails.getUsername());
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("status", 204);
@@ -100,7 +104,5 @@ public class AddressController {
         return result;
 
     }
-
-
 
 }

@@ -9,14 +9,15 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import vn.vuxnye.common.TokenType;
 import vn.vuxnye.dto.request.SignInRequest;
 import vn.vuxnye.dto.response.TokenResponse;
 import vn.vuxnye.exception.InvalidDataException;
+import vn.vuxnye.exception.ResourceNotFoundException;
 import vn.vuxnye.model.TokenEntity;
+import vn.vuxnye.repository.TokenRepository;
 import vn.vuxnye.repository.UserRepository;
 import vn.vuxnye.service.AuthenticationService;
 import vn.vuxnye.service.TokenService;
@@ -30,6 +31,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final AuthenticationManager authenticationManager;
     private final JwtServiceImpl jwtService;
     private final TokenService tokenService;
+    private final TokenRepository tokenRepository;
 
 
     @Override
@@ -46,10 +48,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new AccessDeniedException(e.getMessage());
         }
 
-        var user = userRepository.findByUsername(request.getUsername());
-        if(user == null){
-            throw new UsernameNotFoundException("User not found");
-        }
+        var user = userRepository.findByUsername(request.getUsername()).orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         String accessToken= jwtService.generateAccessToken(user.getId(),request.getUsername(),user.getAuthorities());
         String refreshToken= jwtService.generateRefreshToken(user.getId(),request.getUsername(),user.getAuthorities());
@@ -60,6 +59,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .username(request.getUsername())
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
+                .platform(request.getPlatform())
+                .deviceToken(request.getDeviceToken())
+                .versionApp(request.getVersionApp())
                 .build());
 
         return TokenResponse.builder()
@@ -84,7 +86,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new AccessDeniedException("Invalid or expired refresh token", e);
         }
 
-        var user = userRepository.findByUsername(username);
+        var user = userRepository.findByUsername(username).orElseThrow(() -> new ResourceNotFoundException("User not found"));;
         if (user == null) {
             log.warn("User not found for refresh token (username: {})", username);
             throw new UsernameNotFoundException("User associated with refresh token not found");
@@ -97,13 +99,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 user.getAuthorities()
         );
 
-        // save token to db
-        tokenService.save(TokenEntity
-                .builder()
-                .username(user.getUsername())
-                .accessToken(newAccessToken)
-                .refreshToken(refreshToken)
-                .build());
+        TokenEntity existingToken = tokenRepository.findByRefreshToken(refreshToken).orElseThrow();
+         existingToken.setAccessToken(newAccessToken);
+         tokenService.save(existingToken);
 
 
         return TokenResponse.builder()

@@ -7,6 +7,9 @@ import lombok.Setter;
 @Getter
 @Setter
 public class AddressRequest implements java.io.Serializable{
+//    @NotBlank(message = "Address id must be not blank")
+//    private Long id;
+
     @NotBlank (message = "Tên người nhận không được để trống")
     private String recipientName;
 

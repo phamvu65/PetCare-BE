@@ -2,8 +2,11 @@ package vn.vuxnye.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.http.HttpHeaders;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,17 +27,30 @@ public class AuthenticationController {
     @Operation(summary = "Access token",description = "Get access token and refresh token by usename and password")
     @PostMapping("/access-token")
     public TokenResponse getAccessToken(@RequestBody SignInRequest request) {
-        log.info("Get access token");
+        log.info("Get access-token for user: {}", request.getUsername());
 
-//        return TokenResponse.builder().accessToken("DUMMY-ACCESS-TOKEN").refreshToken("DUMMY-REFRESH-TOKEN").build();
         return authenticationService.getAccessToken(request);
     }
 
     @Operation(summary = "Refresh token",description = "Get new access token by refresh token")
     @PostMapping("/refresh-token")
+//    public TokenResponse GetRefreshToken(HttpServletRequest request) {
+//        log.info("Refresh token request");
+//
+//
+//        final String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
+//        final String refreshToken;
+//
+//        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+//            throw new AccessDeniedException("Refresh token is missing or invalid");
+//        }
+//
+//        refreshToken = authHeader.substring(7);
+//
+//        return authenticationService.getRefreshToken(refreshToken);
+//    }
     public TokenResponse GetRefreshToken(@RequestBody String refreshToken) {
         log.info("Refresh token request");
-//        return TokenResponse.builder().accessToken("DUMMY-NEW-ACCESS-TOKEN").refreshToken("DUMMY-REFRESH-TOKEN").build();
         return authenticationService.getRefreshToken(refreshToken);
     }
 

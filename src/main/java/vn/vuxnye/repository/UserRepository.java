@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import vn.vuxnye.model.UserEntity;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<UserEntity,Long> {
@@ -22,5 +23,7 @@ public interface UserRepository extends JpaRepository<UserEntity,Long> {
     Page<UserEntity> searchByKeyWord(String keyword, Pageable pageable);
 
     UserEntity findByEmail(String email);
-    UserEntity findByUsername(String username);
+
+    @Query("SELECT u FROM UserEntity u JOIN FETCH u.roles WHERE u.username = :username")
+    Optional<UserEntity> findByUsername(String username);
 }

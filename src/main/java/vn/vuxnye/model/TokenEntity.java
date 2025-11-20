@@ -12,13 +12,25 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "token")
-public class TokenEntity extends BaseEntity{
+public class TokenEntity extends BaseEntity { // Kế thừa BaseEntity
+
     @Column(name = "username", unique = true)
     private String username;
 
-    @Column(name = "access_token")
+    @Column(name = "access_token", columnDefinition = "TEXT")
     private String accessToken;
 
-    @Column(name = "refresh_token")
+    @Column(name = "refresh_token", columnDefinition = "TEXT")
     private String refreshToken;
+
+
+    @Column(name = "platform", length = 50)
+    private String platform; // web, mobile, miniApp
+
+    @Column(name = "device_token", columnDefinition = "TEXT")
+    private String deviceToken; // Token của Firebase/Apple Push
+
+    @Column(name = "version_app", length = 20)
+    private String versionApp;
+
 }

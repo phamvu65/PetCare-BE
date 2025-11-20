@@ -1,21 +1,23 @@
 package vn.vuxnye.service;
 
+import org.springframework.security.core.userdetails.UserDetails;
 import vn.vuxnye.dto.request.PetCreationRequest;
+import vn.vuxnye.dto.request.PetUpdateRequest;
 import vn.vuxnye.dto.response.PetPageResponse;
 import vn.vuxnye.dto.response.PetResponse;
+
+import java.util.List;
 
 public interface PetService {
     PetPageResponse findAll(String keyword, String sort, int page, int size);
 
     PetResponse findById(Long id);
 
-    PetResponse findByOwner(Long ownerId);
+    List<PetResponse> getMyPets(UserDetails userDetails);
 
-    PetResponse findByName(String name);
+    PetResponse addPet(PetCreationRequest req, UserDetails userDetails);
 
-    Long save(PetCreationRequest req);
+    PetResponse updatePet(PetUpdateRequest req, UserDetails userDetails);
 
-    void update(Long id, Long ownerId);
-
-    void delete(Long id);
+    void deletePet(Long petId, UserDetails userDetails);
 }

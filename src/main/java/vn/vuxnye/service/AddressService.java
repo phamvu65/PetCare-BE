@@ -1,19 +1,20 @@
 package vn.vuxnye.service;
 
+import org.springframework.security.core.userdetails.UserDetails;
 import vn.vuxnye.dto.request.AddressRequest;
 import vn.vuxnye.dto.response.AddressResponse;
 
 import java.util.List;
 
 public interface AddressService {
-    List<AddressResponse> getAddressesByUserId(Long userId);
+    List<AddressResponse> getAddressesByUsername(String username);
 
-    AddressResponse getAddressDefaultByUserId(Long userId);
+    AddressResponse getAddressDefaultByUsername(String username);
 
-    Long addAddress(Long userId,AddressRequest req);
+    Long addAddress(String username,AddressRequest req);
 
-    void updateAddress(Long addressId,Long userId, AddressRequest req);
+    void updateAddress(Long addressId,String username, AddressRequest req);
 
-    void deleteAddress(Long addressId,Long userId);
+    void deleteAddress(Long addressId,String username);
 
 }

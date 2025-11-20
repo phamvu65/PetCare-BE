@@ -22,7 +22,7 @@ public interface AddressRepository extends JpaRepository<AddressEntity,Long> {
 
     /**
      * (Dùng cho logic 'isDefault')
-     * Hủy (set false) tất cả địa chỉ mặc định CŨ của một User
+     * Hủy (set false) tất cả địa chỉ mặc định cũ của một User
      */
     @Modifying
     @Query("UPDATE AddressEntity a SET a.isDefault = false WHERE a.user.id = :userId AND a.isDefault = true")

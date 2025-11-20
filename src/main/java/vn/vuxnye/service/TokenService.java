@@ -26,9 +26,9 @@ public record TokenService(TokenRepository tokenRepository) {
      * @param token
      * @return
      */
-    public long save(TokenEntity token){
+    public long save(TokenEntity token) {
         Optional<TokenEntity> optional = tokenRepository.findByUsername(token.getUsername());
-        if (optional.isEmpty()){
+        if (optional.isEmpty()) {
             tokenRepository.save(token);
             return token.getId();
         } else {
@@ -49,4 +49,5 @@ public record TokenService(TokenRepository tokenRepository) {
         TokenEntity token = getByUsername(username);
         tokenRepository.delete(token);
     }
+
 }

@@ -114,7 +114,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponse findByUsername(String username) {
         log.info("find user by username:{}", username);
-        UserEntity userEntity= userRepository.findByUsername(username);
+        UserEntity userEntity= userRepository.findByUsername(username).orElseThrow(() -> new ResourceNotFoundException("Pet not found"));
         if(userEntity != null){
             return UserResponse.builder()
                     .id(userEntity.getId())
@@ -251,7 +251,7 @@ public class UserServiceImpl implements UserService {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
 
         //Get user by username
-        UserEntity user = userRepository.findByUsername(currentUsername);
+        UserEntity user = userRepository.findByUsername(currentUsername).orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if(!passwordEncoder.matches(req.getOldPassword(), user.getPassword())){
             throw new InvalidDataException("Old password is incorrect");

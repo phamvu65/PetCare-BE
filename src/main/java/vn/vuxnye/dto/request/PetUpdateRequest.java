@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.ToString;
 import vn.vuxnye.common.Gender;
 
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 
@@ -18,17 +19,19 @@ public class PetUpdateRequest implements java.io.Serializable {
     @Min(value = 1,message ="UserId must be equals or greater than 1"  )
     private Long id;
 
-    @NotBlank(message = "First name must be not blank")
-    private String firstName;
+    private Long ownerId;
 
-    @NotBlank(message = "Last name must be not blank")
-    private String lastName;
-    private Gender gender;
-    private Date birthday;
-    private String userName;
+    private String name;
 
-    @Email(message = "Email invalid")
-    private String email;
-    private String phone;
-    private List<AddressRequest> addresses;
+    private String species;
+
+    private String breed;
+
+    private String color;
+
+    private Gender sex;
+
+    private LocalDate birthDate;
+
+
 }

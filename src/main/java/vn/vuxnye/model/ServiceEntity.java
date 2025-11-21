@@ -1,10 +1,7 @@
 package vn.vuxnye.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.util.Set;
@@ -15,6 +12,7 @@ import java.util.Set;
 @Table(name = "services")
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class ServiceEntity extends BaseEntity {
 
     @Column(name = "name",length = 255)

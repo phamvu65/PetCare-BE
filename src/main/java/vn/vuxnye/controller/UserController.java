@@ -107,7 +107,7 @@ public class UserController {
         log.info("delete user:{}", userId);
         userService.delete(userId);
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("status", HttpStatus.RESET_CONTENT.value());
+        result.put("status", HttpStatus.ACCEPTED.value());
         result.put("message", "User deleted successfully");
         result.put("data","");
         return result;

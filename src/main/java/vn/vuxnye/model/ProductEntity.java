@@ -1,12 +1,11 @@
 package vn.vuxnye.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -28,6 +27,9 @@ public class ProductEntity extends BaseEntity{
 
     @Column(name = "description", columnDefinition ="TEXT")
     private String description;
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProductImageEntity> images = new ArrayList<>();
 
     @Column(nullable = false)
     private Integer stock;

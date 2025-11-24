@@ -42,7 +42,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         try {
             Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
 
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (AuthenticationException e) {
             log.error("Login failed, error:{}", e.getMessage());
             throw new AccessDeniedException(e.getMessage());

@@ -1,10 +1,7 @@
 package vn.vuxnye.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.Set;
 
@@ -14,6 +11,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "categories")
+@Builder
 public class CategoryEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

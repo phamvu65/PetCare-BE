@@ -38,37 +38,60 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public TokenResponse getAccessToken(SignInRequest request) {
         log.info("Get access token");
 
-        //Check db ktra userdetail co hop le
+        // Check db ktra user detail co hop le
         try {
-            Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword()));
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getUsername(),
+                            request.getPassword()
+                    )
+            );
 
-             SecurityContextHolder.getContext().setAuthentication(authentication);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (AuthenticationException e) {
             log.error("Login failed, error:{}", e.getMessage());
             throw new AccessDeniedException(e.getMessage());
         }
 
-        var user = userRepository.findByUsername(request.getUsername()).orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        // Lấy user từ DB
+        var user = userRepository.findByUsername(request.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        String accessToken= jwtService.generateAccessToken(user.getId(),request.getUsername(),user.getAuthorities());
-        String refreshToken= jwtService.generateRefreshToken(user.getId(),request.getUsername(),user.getAuthorities());
+        // Tạo token
+        String accessToken = jwtService.generateAccessToken(
+                user.getId(),
+                request.getUsername(),
+                user.getAuthorities()
+        );
 
-        //save token to db
-        tokenService.save(TokenEntity
-                .builder()
-                .username(request.getUsername())
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .platform(request.getPlatform())
-                .deviceToken(request.getDeviceToken())
-                .versionApp(request.getVersionApp())
-                .build());
+        String refreshToken = jwtService.generateRefreshToken(
+                user.getId(),
+                request.getUsername(),
+                user.getAuthorities()
+        );
 
+        // Lưu token vào DB
+        tokenService.save(
+                TokenEntity.builder()
+                        .username(request.getUsername())
+                        .accessToken(accessToken)
+                        .refreshToken(refreshToken)
+                        .platform(request.getPlatform())
+                        .deviceToken(request.getDeviceToken())
+                        .versionApp(request.getVersionApp())
+                        .build()
+        );
+
+        // ⚡⚡⚡ TRẢ VỀ THÔNG TIN USER TẠI ĐÂY
         return TokenResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
+                .userId(user.getId())         // thêm
+                .username(user.getUsername()) // thêm
+                .email(user.getEmail())       // thêm
                 .build();
     }
+
 
     @Override
     public TokenResponse getRefreshToken(String refreshToken ) {

@@ -10,4 +10,7 @@ import lombok.Setter;
 public class TokenResponse implements java.io.Serializable {
     private String accessToken;
     private String refreshToken;
+    private Long userId;
+    private String username;
+    private String email;
 }

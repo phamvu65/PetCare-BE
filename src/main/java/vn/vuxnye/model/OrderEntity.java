@@ -9,6 +9,7 @@ import vn.vuxnye.common.OrderChannel;
 import vn.vuxnye.common.OrderStatus;
 import vn.vuxnye.common.PaymentMethod;
 
+import java.math.BigDecimal;
 import java.util.Set;
 
 @Getter
@@ -39,6 +40,9 @@ public class OrderEntity extends BaseEntity {
 
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;
+
+    @Column(name = "total_amount", nullable = false, precision = 15, scale = 2)
+    private BigDecimal totalAmount;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     private Set<OrderDetailEntity> orderDetails = new java.util.HashSet<>();

@@ -17,6 +17,7 @@ import vn.vuxnye.exception.ResourceNotFoundException;
 import vn.vuxnye.service.ProductService;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -30,16 +31,20 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping("/list")
-    @Operation(summary = "Get all products", description = "Retrieve list of products (Pagination, Search, Sort)")
+    @Operation(summary = "Get all products", description = "Retrieve list of products (Pagination, Search, Sort, Category Filter)")
     public Map<String, Object> getAllProducts(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false, defaultValue = "id:asc") String sort,
             @RequestParam(required = false, defaultValue = "1") int page,
-            @RequestParam(required = false, defaultValue = "10") int size) {
-
-        ProductPageResponse response = productService.findAll(keyword, sort, page, size);
+            @RequestParam(required = false, defaultValue = "10") int size,
+            // 🟢 THAY ĐỔI: Nhận List<Long> để lọc nhiều danh mục
+            // name = "categoryId" để khớp với FE gửi lên (ví dụ: ?categoryId=1,2,3)
+            @RequestParam(required = false, name = "categoryId") List<Long> categoryIds
+    ) {
+        ProductPageResponse response = productService.findAll(keyword, sort, page, size, categoryIds);
         return createResponse(HttpStatus.OK, "Get products success", response);
     }
+
 
     @GetMapping("/{id}")
     @Operation(summary = "Get product detail")

@@ -53,8 +53,13 @@ public class AppConfig {
                 .authorizeHttpRequests(request -> request.requestMatchers("/auth/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
-                                "/swagger-ui.html")
-                        .permitAll()
+                                "/swagger-ui.html",
+                                "/user/add",
+                                "/categories/**",
+                                "/products/**"
+                                )
+
+                                                .permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(manager -> manager.sessionCreationPolicy(STATELESS))
                 .authenticationProvider(authenticationProvider())
@@ -66,7 +71,8 @@ public class AppConfig {
     public WebSecurityCustomizer ignoreResources() {
         return (webSecurity) -> webSecurity
                 .ignoring()
-                .requestMatchers("/actuator/**", "/v3/**", "/webjars/**", "/swagger-ui*/*swagger-initializer.js", "/swagger-ui*/**");
+                .requestMatchers("/actuator/**", "/v3/**", "/webjars/**",
+                        "/swagger-ui*/*swagger-initializer.js", "/swagger-ui*/**");
     }
 
     @Bean

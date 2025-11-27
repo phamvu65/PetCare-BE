@@ -32,14 +32,15 @@ import java.util.regex.Pattern;
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
-    private final CategoryRepository categoryRepository; // Cần repo này để check Category
+    private final CategoryRepository categoryRepository;
 
     @Override
     @Transactional(readOnly = true)
-    public ProductPageResponse findAll(String keyword, String sort, int page, int size) {
-        log.info("Find all products with keyword: {}", keyword);
+    public ProductPageResponse findAll(String keyword, String sort, int page, int size, List<Long> categoryIds) {
+        // Lưu ý: Đã đổi tham số categoryId (Integer) -> categoryIds (List<Long>)
+        log.info("Find all products with keyword: {} and categoryIds: {}", keyword, categoryIds);
 
-        // Logic sort (Giống Pet/Service)
+        // 1. Xử lý Sort
         Sort.Order order = new Sort.Order(Sort.Direction.ASC, "id");
         if (StringUtils.hasLength(sort)) {
             Pattern pattern = Pattern.compile("(\\w+?)(:)(.*)");
@@ -57,13 +58,16 @@ public class ProductServiceImpl implements ProductService {
         int pageNo = (page > 0) ? page - 1 : 0;
         Pageable pageable = PageRequest.of(pageNo, size, Sort.by(order));
 
-        Page<ProductEntity> entityPage = productRepository.searchProducts(keyword, pageable);
+        // 2. Gọi Repository (Query mới đã handle việc list null hoặc rỗng)
+        // Không cần if/else check null ở đây nữa
+        Page<ProductEntity> entityPage = productRepository.searchProducts(keyword, categoryIds, pageable);
 
-        // Convert DTO
+        // 3. Convert Entity sang DTO
         List<ProductResponse> productList = entityPage.stream()
                 .map(ProductResponse::fromEntity)
                 .toList();
 
+        // 4. Tạo response
         ProductPageResponse response = new ProductPageResponse();
         response.setProducts(productList);
         response.setPageNumber(page);
@@ -86,11 +90,9 @@ public class ProductServiceImpl implements ProductService {
     public ProductResponse create(ProductRequest request) {
         log.info("Create product: {}", request.getName());
 
-        // 1. Tìm Category
         CategoryEntity category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found id: " + request.getCategoryId()));
 
-        // 2. Tạo Product
         ProductEntity product = new ProductEntity();
         product.setName(request.getName());
         product.setDescription(request.getDescription());
@@ -98,7 +100,6 @@ public class ProductServiceImpl implements ProductService {
         product.setStock(request.getStock());
         product.setCategory(category);
 
-        // 3. Xử lý Images (Nếu có)
         if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
             List<ProductImageEntity> images = new ArrayList<>();
             for (String url : request.getImageUrls()) {
@@ -118,29 +119,22 @@ public class ProductServiceImpl implements ProductService {
     public ProductResponse update(Long id, ProductRequest request) {
         log.info("Update product id: {}", id);
 
-        // 1. Tìm Product cũ (dùng findById thường để Hibernate quản lý session tốt hơn khi update)
         ProductEntity product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
 
-        // 2. Update Category nếu thay đổi
         if (!product.getCategory().getId().equals(request.getCategoryId())) {
             CategoryEntity newCategory = categoryRepository.findById(request.getCategoryId())
                     .orElseThrow(() -> new ResourceNotFoundException("Category not found id: " + request.getCategoryId()));
             product.setCategory(newCategory);
         }
 
-        // 3. Update thông tin cơ bản
         product.setName(request.getName());
         product.setDescription(request.getDescription());
         product.setPrice(request.getPrice());
         product.setStock(request.getStock());
 
-        // 4. Update Images (Xóa cũ, thêm mới - Cách đơn giản nhất)
         if (request.getImageUrls() != null) {
-            // Xóa list cũ (orphanRemoval=true sẽ xóa khỏi DB)
             product.getImages().clear();
-
-            // Thêm list mới
             for (String url : request.getImageUrls()) {
                 ProductImageEntity img = new ProductImageEntity();
                 img.setProduct(product);

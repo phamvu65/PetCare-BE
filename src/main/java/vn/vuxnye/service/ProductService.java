@@ -4,10 +4,13 @@ import vn.vuxnye.dto.request.ProductRequest;
 import vn.vuxnye.dto.response.ProductPageResponse;
 import vn.vuxnye.dto.response.ProductResponse;
 
+import java.util.List;
+
 public interface ProductService {
 
     // Public: Xem danh sách
-    ProductPageResponse findAll(String keyword, String sort, int page, int size);
+    // Lưu ý: Đã đổi Integer categoryId -> List<Long> categoryIds
+    ProductPageResponse findAll(String keyword, String sort, int page, int size, List<Long> categoryIds);
 
     // Public: Xem chi tiết
     ProductResponse findById(Long id);

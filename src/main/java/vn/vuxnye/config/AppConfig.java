@@ -54,9 +54,11 @@ public class AppConfig {
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/user/add")
+                                "/user/add",
+                                "/categories/**",
+                                "/products/**"
+                                )
                         .permitAll()
-                        .requestMatchers("/payments/vnpay-return").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(manager -> manager.sessionCreationPolicy(STATELESS))
                 .authenticationProvider(authenticationProvider())

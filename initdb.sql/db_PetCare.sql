@@ -638,7 +638,7 @@ CREATE TABLE `users` (
                          UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
+ALTER TABLE product_images MODIFY COLUMN image_url LONGTEXT;
 --
 -- Dumping data for table `users`
 --

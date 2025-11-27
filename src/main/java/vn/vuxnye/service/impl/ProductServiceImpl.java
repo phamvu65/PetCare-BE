@@ -14,9 +14,12 @@ import vn.vuxnye.dto.response.ProductPageResponse;
 import vn.vuxnye.dto.response.ProductResponse;
 import vn.vuxnye.exception.ResourceNotFoundException;
 import vn.vuxnye.model.CategoryEntity;
+import vn.vuxnye.model.OrderDetailEntity;
 import vn.vuxnye.model.ProductEntity;
 import vn.vuxnye.model.ProductImageEntity;
 import vn.vuxnye.repository.CategoryRepository;
+import vn.vuxnye.repository.OrderDetailRepository;
+import vn.vuxnye.repository.OrderRepository;
 import vn.vuxnye.repository.ProductRepository;
 import vn.vuxnye.service.ProductService;
 
@@ -33,7 +36,7 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
-
+    private final OrderDetailRepository orderDetailRepository;
     @Override
     @Transactional(readOnly = true)
     public ProductPageResponse findAll(String keyword, String sort, int page, int size, List<Long> categoryIds) {
@@ -149,10 +152,26 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public void delete(Long id) {
-        log.warn("Delete product id: {}", id);
+        log.warn("Hard delete product id: {}", id);
+
         if (!productRepository.existsById(id)) {
             throw new ResourceNotFoundException("Product not found with id: " + id);
         }
+
+        // 🟢 2. CẮT ĐỨT QUAN HỆ TRƯỚC (Giải quyết lỗi Foreign Key)
+        List<OrderDetailEntity> relatedDetails = orderDetailRepository.findByProductId(id);
+
+        for (OrderDetailEntity detail : relatedDetails) {
+            // Cách A: Giữ lại lịch sử đơn hàng, nhưng set product = null (Khuyên dùng)
+            // (Điều kiện: Cột product_id trong database phải cho phép NULL)
+            detail.setProduct(null);
+            orderDetailRepository.save(detail);
+
+            // Cách B: Xóa luôn dòng chi tiết đơn hàng này (Nếu bạn muốn xóa sạch sành sanh)
+            // orderDetailRepository.delete(detail);
+        }
+
+        // 🟢 3. GIỜ THÌ XÓA SẢN PHẨM THOẢI MÁI
         productRepository.deleteById(id);
     }
 }

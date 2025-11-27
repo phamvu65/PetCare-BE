@@ -21,6 +21,7 @@ public class ProductImageEntity implements java.io.Serializable {
     @JoinColumn(name = "product_id", nullable = false)
     private ProductEntity product;
 
+    @Lob
     @Column(name = "image_url", nullable = false, length = 500)
     private String imageUrl;
 

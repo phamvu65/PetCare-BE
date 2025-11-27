@@ -32,4 +32,13 @@ public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
             "LEFT JOIN FETCH p.images " +           // Tải ảnh sản phẩm (nếu cần hiện ảnh)
             "WHERE o.id = :id")
     Optional<OrderEntity> findByIdWithDetails(@Param("id") Long id);
+
+    // Kiểm tra xem User đã từng mua (và nhận hàng) sản phẩm này chưa
+    // Điều kiện: Đơn hàng chứa sản phẩm đó VÀ trạng thái là COMPLETED (hoặc DELIVERED)
+    @Query("SELECT COUNT(o) > 0 FROM OrderEntity o " +
+            "JOIN o.orderDetails od " +
+            "WHERE o.customer.id = :userId " +
+            "AND od.product.id = :productId " +
+            "AND o.status = 'COMPLETED'") // Chỉ cho phép đánh giá khi đơn đã hoàn tất
+    boolean existsByCustomerAndProductAndStatusCompleted(Long userId, Long productId);
 }

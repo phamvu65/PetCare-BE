@@ -1,7 +1,9 @@
 package vn.vuxnye.service;
 
 import org.springframework.security.core.userdetails.UserDetails;
+import vn.vuxnye.common.OrderStatus;
 import vn.vuxnye.dto.request.OrderRequest;
+import vn.vuxnye.dto.response.OrderPageResponse;
 import vn.vuxnye.dto.response.OrderResponse;
 
 import java.util.List;
@@ -16,4 +18,11 @@ public interface OrderService {
 
     // Xem chi tiết đơn hàng
     OrderResponse getOrderById(Long id, UserDetails userDetails);
+
+    OrderResponse updateOrderStatus(Long orderId, OrderStatus newStatus, UserDetails userDetails);
+
+    void cancelOrderUser(Long id,UserDetails userDetails);
+
+    OrderPageResponse getAllOrders(OrderStatus status, int page, int size);
+
 }

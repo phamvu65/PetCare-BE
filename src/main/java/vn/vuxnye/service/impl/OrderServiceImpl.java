@@ -2,6 +2,10 @@ package vn.vuxnye.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,6 +15,7 @@ import vn.vuxnye.common.OrderChannel;
 import vn.vuxnye.common.OrderStatus;
 import vn.vuxnye.dto.request.OrderItemRequest;
 import vn.vuxnye.dto.request.OrderRequest;
+import vn.vuxnye.dto.response.OrderPageResponse;
 import vn.vuxnye.dto.response.OrderResponse;
 import vn.vuxnye.exception.ResourceNotFoundException;
 import vn.vuxnye.model.*;
@@ -38,6 +43,41 @@ public class OrderServiceImpl implements OrderService {
     private final CartRepository cartRepository;
     private final CouponRepository couponRepository;
     private final CartService cartService; // Để clear cart sau khi đặt hàng thành công
+
+    @Override
+    @Transactional(readOnly = true)
+    public OrderPageResponse getAllOrders(OrderStatus status, int page, int size) {
+        log.info("Admin fetching all orders. Status filter: {}", status);
+
+        // Sắp xếp mặc định: Mới nhất lên đầu
+        Pageable pageable = PageRequest.of(page > 0 ? page - 1 : 0, size, Sort.by("createdAt").descending());
+
+        Page<OrderEntity> orderPage;
+
+        if (status != null) {
+            // Nếu có lọc theo trạng thái (Ví dụ: chỉ xem đơn PENDING)
+            // (Lưu ý: Bạn cần đảm bảo Repository có hàm findAllByStatus hoặc dùng Specification)
+            orderPage = orderRepository.findAllByStatus(status, pageable);
+        } else {
+            // Lấy tất cả
+            orderPage = orderRepository.findAll(pageable);
+        }
+
+        // Chuyển đổi Entity -> DTO
+        List<OrderResponse> orderResponses = orderPage.stream()
+                .map(order -> OrderResponse.fromEntity(order, order.getTotalAmount()))
+                .collect(Collectors.toList());
+
+        OrderPageResponse response = new OrderPageResponse();
+        response.setOrders(orderResponses);
+        response.setPageNumber(page);
+        response.setPageSize(size);
+        response.setTotalElements(orderPage.getTotalElements());
+        response.setTotalPages(orderPage.getTotalPages());
+
+        return response;
+    }
+
 
     @Override
     public OrderResponse createOrder(UserDetails userDetails, OrderRequest request) {
@@ -182,6 +222,126 @@ public class OrderServiceImpl implements OrderService {
         }
 
         return OrderResponse.fromEntity(order, order.getTotalAmount());
+    }
+
+    @Override
+    public OrderResponse updateOrderStatus(Long orderId, OrderStatus newStatus, UserDetails userDetails) {
+        log.info("Updating status of order {} to {} by {}", orderId, newStatus, userDetails.getUsername());
+
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
+        // 1. Kiểm tra luồng chuyển đổi (State Machine)
+        validateStatusTransition(order.getStatus(), newStatus);
+
+        // 2. Xử lý Hủy đơn (Hoàn tồn kho)
+        if (newStatus == OrderStatus.CANCELLED) {
+            for (OrderDetailEntity detail : order.getOrderDetails()) {
+                ProductEntity product = detail.getProduct();
+                product.setStock(product.getStock() + detail.getQty());
+                productRepository.save(product);
+            }
+            log.info("Restocked products for cancelled order {}", orderId);
+        }
+
+        // 3. Cập nhật
+        order.setStatus(newStatus);
+        OrderEntity savedOrder = orderRepository.save(order);
+
+        return OrderResponse.fromEntity(savedOrder, savedOrder.getTotalAmount());
+    }
+
+    /**
+     * Logic kiểm soát chuyển đổi trạng thái chặt chẽ (Đã thêm SHIPPING)
+     * PENDING -> (PAID) -> SHIPPING -> DELIVERED -> COMPLETED
+     */
+    private void validateStatusTransition(OrderStatus current, OrderStatus next) {
+        if (current == next) return;
+
+        if (current == OrderStatus.CANCELLED || current == OrderStatus.COMPLETED || current == OrderStatus.REFUNDED) {
+            throw new RuntimeException("Không thể thay đổi trạng thái đơn hàng đã kết thúc (" + current + ")");
+        }
+
+        switch (next) {
+            case PAID:
+                // Từ PENDING (Online), hoặc SHIPPING/DELIVERED (COD trả tiền sau)
+                if (current != OrderStatus.PENDING && current != OrderStatus.SHIPPING && current != OrderStatus.DELIVERED) {
+                    throw new RuntimeException("Không thể chuyển sang PAID từ " + current);
+                }
+                break;
+
+            case SHIPPING:
+                // [MỚI] Admin giao cho Shipper
+                // Chỉ được từ PENDING hoặc PAID
+                if (current != OrderStatus.PENDING && current != OrderStatus.PAID) {
+                    throw new RuntimeException("Chỉ có thể giao hàng (SHIPPING) khi đơn hàng đang PENDING hoặc PAID.");
+                }
+                break;
+
+            case DELIVERED:
+                // Shipper báo giao xong
+                // Phải từ SHIPPING chuyển sang
+                if (current != OrderStatus.SHIPPING) {
+                    throw new RuntimeException("Đơn hàng phải đang giao (SHIPPING) mới có thể chuyển thành Đã giao (DELIVERED).");
+                }
+                break;
+
+            case COMPLETED:
+                // Khách xác nhận
+                // Phải đã giao (DELIVERED) hoặc đã thanh toán (PAID - trường hợp không ship)
+                if (current != OrderStatus.DELIVERED && current != OrderStatus.PAID) {
+                    throw new RuntimeException("Chỉ có thể hoàn tất đơn hàng khi đã giao hàng (DELIVERED).");
+                }
+                break;
+
+            case CANCELLED:
+                // Chỉ hủy khi chưa giao
+                if (current == OrderStatus.SHIPPING || current == OrderStatus.DELIVERED) {
+                    throw new RuntimeException("Không thể hủy đơn hàng đang giao hoặc đã giao.");
+                }
+                break;
+
+            case REFUNDED:
+                if (current == OrderStatus.PENDING) {
+                    throw new RuntimeException("Đơn hàng chưa thanh toán, không thể hoàn tiền.");
+                }
+                break;
+
+            default:
+                break;
+        }
+    }
+
+    @Override
+    public void cancelOrderUser(Long orderId, UserDetails userDetails) {
+        log.info("User {} requesting cancel order {}", userDetails.getUsername(), orderId);
+
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
+        // 1. Kiểm tra quyền sở hữu (Bảo mật)
+        if (!order.getCustomer().getUsername().equals(userDetails.getUsername())) {
+            // Ném lỗi Not Found để tránh lộ thông tin đơn hàng của người khác
+            throw new ResourceNotFoundException("Order not found");
+        }
+
+        // 2. Kiểm tra trạng thái
+        // Khách hàng CHỈ được hủy khi đơn hàng còn PENDING (chưa xử lý/chưa giao)
+        if (order.getStatus() != OrderStatus.PENDING) {
+            throw new RuntimeException("Bạn chỉ có thể hủy đơn hàng khi đang chờ xử lý (PENDING). Trạng thái hiện tại: " + order.getStatus());
+        }
+
+        // 3. Hoàn lại tồn kho (Restock)
+        for (OrderDetailEntity detail : order.getOrderDetails()) {
+            ProductEntity product = detail.getProduct();
+            product.setStock(product.getStock() + detail.getQty());
+            productRepository.save(product);
+        }
+        log.info("Restocked products for user-cancelled order {}", orderId);
+
+        // 4. Cập nhật trạng thái
+        order.setStatus(OrderStatus.CANCELLED);
+        orderRepository.save(order);
     }
 
     // --- Helper Methods ---

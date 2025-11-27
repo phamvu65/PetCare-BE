@@ -53,8 +53,10 @@ public class AppConfig {
                 .authorizeHttpRequests(request -> request.requestMatchers("/auth/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
-                                "/swagger-ui.html")
+                                "/swagger-ui.html",
+                                "/user/add")
                         .permitAll()
+                        .requestMatchers("/payments/vnpay-return").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(manager -> manager.sessionCreationPolicy(STATELESS))
                 .authenticationProvider(authenticationProvider())

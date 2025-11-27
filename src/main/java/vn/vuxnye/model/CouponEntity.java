@@ -1,10 +1,7 @@
 package vn.vuxnye.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import vn.vuxnye.common.CouponType;
 
 import java.math.BigDecimal;
@@ -17,6 +14,7 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class CouponEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

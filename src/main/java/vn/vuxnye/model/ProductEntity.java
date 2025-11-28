@@ -34,5 +34,11 @@ public class ProductEntity extends BaseEntity{
     @Column(nullable = false)
     private Integer stock;
 
+    @Column(name = "is_deleted")
+    private Boolean isDeleted = false; // Mặc định false
+
+    // Getter & Setter (Lombok @Data tự sinh rồi, nếu không dùng Lombok thì tự thêm)
+    public Boolean getIsDeleted() { return isDeleted; }
+    public void setIsDeleted(Boolean isDeleted) { this.isDeleted = isDeleted; }
 
 }

@@ -14,12 +14,9 @@ import vn.vuxnye.dto.response.ProductPageResponse;
 import vn.vuxnye.dto.response.ProductResponse;
 import vn.vuxnye.exception.ResourceNotFoundException;
 import vn.vuxnye.model.CategoryEntity;
-import vn.vuxnye.model.OrderDetailEntity;
 import vn.vuxnye.model.ProductEntity;
 import vn.vuxnye.model.ProductImageEntity;
 import vn.vuxnye.repository.CategoryRepository;
-import vn.vuxnye.repository.OrderDetailRepository;
-import vn.vuxnye.repository.OrderRepository;
 import vn.vuxnye.repository.ProductRepository;
 import vn.vuxnye.service.ProductService;
 
@@ -36,12 +33,14 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
-    private final OrderDetailRepository orderDetailRepository;
+
     @Override
     @Transactional(readOnly = true)
-    public ProductPageResponse findAll(String keyword, String sort, int page, int size, List<Long> categoryIds) {
-        // Lưu ý: Đã đổi tham số categoryId (Integer) -> categoryIds (List<Long>)
-        log.info("Find all products with keyword: {} and categoryIds: {}", keyword, categoryIds);
+    public ProductPageResponse findAll(String keyword, String sort, int page, int size, List<Long> categoryIds, Boolean isDeleted) {
+        log.info("Find all products. Keyword: {}, Categories: {}, Deleted: {}", keyword, categoryIds, isDeleted);
+
+        // Mặc định nếu không truyền isDeleted thì coi như lấy sản phẩm CHƯA xóa (false)
+        boolean deletedStatus = (isDeleted != null) ? isDeleted : false;
 
         // 1. Xử lý Sort
         Sort.Order order = new Sort.Order(Sort.Direction.ASC, "id");
@@ -61,9 +60,9 @@ public class ProductServiceImpl implements ProductService {
         int pageNo = (page > 0) ? page - 1 : 0;
         Pageable pageable = PageRequest.of(pageNo, size, Sort.by(order));
 
-        // 2. Gọi Repository (Query mới đã handle việc list null hoặc rỗng)
-        // Không cần if/else check null ở đây nữa
-        Page<ProductEntity> entityPage = productRepository.searchProducts(keyword, categoryIds, pageable);
+        // 2. Gọi Repository (Đã cập nhật để nhận thêm tham số deletedStatus)
+        // 🟢 QUAN TRỌNG: Truyền deletedStatus vào đây
+        Page<ProductEntity> entityPage = productRepository.searchProducts(keyword, categoryIds, deletedStatus, pageable);
 
         // 3. Convert Entity sang DTO
         List<ProductResponse> productList = entityPage.stream()
@@ -102,6 +101,7 @@ public class ProductServiceImpl implements ProductService {
         product.setPrice(request.getPrice());
         product.setStock(request.getStock());
         product.setCategory(category);
+        product.setIsDeleted(false); // Mặc định khi tạo mới là chưa xóa
 
         if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
             List<ProductImageEntity> images = new ArrayList<>();
@@ -152,26 +152,29 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public void delete(Long id) {
-        log.warn("Hard delete product id: {}", id);
+        log.info("Soft delete product id: {}", id);
 
-        if (!productRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Product not found with id: " + id);
-        }
+        ProductEntity product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
 
-        // 🟢 2. CẮT ĐỨT QUAN HỆ TRƯỚC (Giải quyết lỗi Foreign Key)
-        List<OrderDetailEntity> relatedDetails = orderDetailRepository.findByProductId(id);
+        // 🟢 THAY VÌ XÓA HẲN, TA CHỈ ĐÁNH DẤU LÀ ĐÃ XÓA
+        product.setIsDeleted(true);
 
-        for (OrderDetailEntity detail : relatedDetails) {
-            // Cách A: Giữ lại lịch sử đơn hàng, nhưng set product = null (Khuyên dùng)
-            // (Điều kiện: Cột product_id trong database phải cho phép NULL)
-            detail.setProduct(null);
-            orderDetailRepository.save(detail);
+        // Lưu lại thay đổi (Update is_deleted = 1)
+        productRepository.save(product);
+    }
 
-            // Cách B: Xóa luôn dòng chi tiết đơn hàng này (Nếu bạn muốn xóa sạch sành sanh)
-            // orderDetailRepository.delete(detail);
-        }
+    // 🟢 HÀM MỚI: KHÔI PHỤC SẢN PHẨM
+    @Override
+    public void restore(Long id) {
+        log.info("Restore product id: {}", id);
 
-        // 🟢 3. GIỜ THÌ XÓA SẢN PHẨM THOẢI MÁI
-        productRepository.deleteById(id);
+        ProductEntity product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+
+        // Đánh dấu là chưa xóa
+        product.setIsDeleted(false);
+
+        productRepository.save(product);
     }
 }

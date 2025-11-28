@@ -639,6 +639,7 @@ CREATE TABLE `users` (
 ) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 ALTER TABLE product_images MODIFY COLUMN image_url LONGTEXT;
+ALTER TABLE products ADD COLUMN is_deleted BIT(1) DEFAULT 0;
 --
 -- Dumping data for table `users`
 --

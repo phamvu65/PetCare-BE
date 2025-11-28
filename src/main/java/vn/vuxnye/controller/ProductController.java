@@ -31,18 +31,27 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping("/list")
-    @Operation(summary = "Get all products", description = "Retrieve list of products (Pagination, Search, Sort, Category Filter)")
     public Map<String, Object> getAllProducts(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false, defaultValue = "id:asc") String sort,
             @RequestParam(required = false, defaultValue = "1") int page,
             @RequestParam(required = false, defaultValue = "10") int size,
-            // 🟢 THAY ĐỔI: Nhận List<Long> để lọc nhiều danh mục
-            // name = "categoryId" để khớp với FE gửi lên (ví dụ: ?categoryId=1,2,3)
-            @RequestParam(required = false, name = "categoryId") List<Long> categoryIds
+            @RequestParam(required = false, name = "categoryId") List<Long> categoryIds,
+            // 🟢 Nhận thêm param từ FE: true = xem thùng rác, false/null = xem hàng bán
+            @RequestParam(required = false, defaultValue = "false") Boolean isDeleted
     ) {
-        ProductPageResponse response = productService.findAll(keyword, sort, page, size, categoryIds);
+        // Truyền isDeleted xuống Service
+        ProductPageResponse response = productService.findAll(keyword, sort, page, size, categoryIds, isDeleted);
         return createResponse(HttpStatus.OK, "Get products success", response);
+    }
+
+    // 🟢 API KHÔI PHỤC
+    @PutMapping("/restore/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Admin: Restore deleted product")
+    public Map<String, Object> restoreProduct(@PathVariable Long id) {
+        productService.restore(id);
+        return createResponse(HttpStatus.OK, "Restore product success", null);
     }
 
 

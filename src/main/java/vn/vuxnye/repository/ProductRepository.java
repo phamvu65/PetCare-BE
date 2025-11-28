@@ -20,14 +20,16 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
      * - categoryIds: danh sách ID danh mục cần lọc (có thể null hoặc rỗng)
      * - Sử dụng LEFT JOIN FETCH p.category để lấy luôn thông tin danh mục, tránh lỗi N+1 query.
      */
-    @Query("SELECT p FROM ProductEntity p " +
-            "LEFT JOIN FETCH p.category c " +
-            "WHERE (:keyword IS NULL OR :keyword = '' OR " +
-            "       LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "       LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
-            "AND ((:categoryIds) IS NULL OR c.id IN (:categoryIds))")
+    @Query("SELECT DISTINCT p FROM ProductEntity p " +
+            "LEFT JOIN FETCH p.images " +
+            "LEFT JOIN FETCH p.category " +
+            "WHERE (:keyword IS NULL OR p.name LIKE %:keyword%) " +
+            "AND (:categoryIds IS NULL OR p.category.id IN :categoryIds) " +
+            // 👇 Logic lọc: Nếu isDeleted = true thì lấy sp xóa, false thì lấy sp chưa xóa
+            "AND (p.isDeleted = :isDeleted)")
     Page<ProductEntity> searchProducts(@Param("keyword") String keyword,
                                        @Param("categoryIds") List<Long> categoryIds,
+                                       @Param("isDeleted") boolean isDeleted, // 👈 Thêm tham số này
                                        Pageable pageable);
 
     /**

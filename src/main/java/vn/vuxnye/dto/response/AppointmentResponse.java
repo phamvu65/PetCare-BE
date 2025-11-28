@@ -44,16 +44,24 @@ public class AppointmentResponse {
         return AppointmentResponse.builder()
                 .id(entity.getId())
                 .customerId(entity.getCustomer().getId())
+                // Khách hàng: First + Last
                 .customerName(entity.getCustomer().getFirstName() + " " + entity.getCustomer().getLastName())
                 .customerPhone(entity.getCustomer().getPhone())
+
                 .petId(entity.getPet().getId())
                 .petName(entity.getPet().getName())
+
                 .serviceId(entity.getService().getId())
                 .serviceName(entity.getService().getName())
                 .servicePrice(entity.getService().getPrice())
-                // Xử lý Staff (có thể null)
+
+                // --- SỬA ĐOẠN NÀY ---
                 .staffId(entity.getStaff() != null ? entity.getStaff().getId() : null)
-                .staffName(entity.getStaff() != null ? entity.getStaff().getFirstName() : "Unassigned")
+                .staffName(entity.getStaff() != null
+                        ? entity.getStaff().getFirstName() + " " + entity.getStaff().getLastName()
+                        : "Unassigned")
+                // --------------------
+
                 .scheduledAt(entity.getScheduledAt())
                 .status(entity.getStatus())
                 .note(entity.getNote())

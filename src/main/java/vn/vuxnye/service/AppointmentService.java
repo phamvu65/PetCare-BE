@@ -1,6 +1,7 @@
 package vn.vuxnye.service;
 
 import org.springframework.security.core.userdetails.UserDetails;
+import vn.vuxnye.common.AppointmentStatus;
 import vn.vuxnye.dto.request.AppointmentRequest;
 import vn.vuxnye.dto.response.AppointmentPageResponse;
 import vn.vuxnye.dto.response.AppointmentResponse;
@@ -9,7 +10,6 @@ import java.util.List;
 public interface AppointmentService {
 
     // Admin/Staff: Lấy tất cả lịch hẹn (phân trang)
-    AppointmentPageResponse findAll(int page, int size);
 
     // User: Lấy lịch hẹn của TÔI
     List<AppointmentResponse> getMyAppointments(UserDetails userDetails);
@@ -25,4 +25,7 @@ public interface AppointmentService {
 
     // User: Hủy lịch hẹn của mình
     void cancel(Long id, UserDetails userDetails);
+
+    // Thêm tham số status (có thể null)
+    AppointmentPageResponse findAll(int page, int size, AppointmentStatus status);
 }

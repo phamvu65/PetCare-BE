@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import vn.vuxnye.common.AppointmentStatus;
 import vn.vuxnye.model.AppointmentEntity;
 
 import java.util.List;
@@ -48,4 +49,13 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
             "LEFT JOIN FETCH a.staff " +
             "WHERE a.customer.username = :username")
     List<AppointmentEntity> findByCustomerUsername(@Param("username") String username);
+
+    @Query(value = "SELECT a FROM AppointmentEntity a " +
+            "JOIN FETCH a.customer " +
+            "JOIN FETCH a.pet " +
+            "JOIN FETCH a.service " +
+            "LEFT JOIN FETCH a.staff " +
+            "WHERE a.status = :status",
+            countQuery = "SELECT COUNT(a) FROM AppointmentEntity a WHERE a.status = :status")
+    Page<AppointmentEntity> findByStatus(@Param("status") AppointmentStatus status, Pageable pageable);
 }

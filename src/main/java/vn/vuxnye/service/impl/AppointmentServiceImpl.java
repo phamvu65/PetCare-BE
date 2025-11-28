@@ -40,12 +40,19 @@ public class AppointmentServiceImpl implements AppointmentService {
      */
     @Override
     @Transactional(readOnly = true)
-    public AppointmentPageResponse findAll(int page, int size) {
-        log.info("Admin finding all appointments");
-        // Sắp xếp: Ngày hẹn gần nhất lên đầu
-        Pageable pageable = PageRequest.of(page > 0 ? page - 1 : 0, size, Sort.by("scheduledAt").descending());
+    public AppointmentPageResponse findAll(int page, int size, AppointmentStatus status) {
+        log.info("Admin finding appointments with status: {}", status);
 
-        Page<AppointmentEntity> pageResult = appointmentRepository.findAll(pageable);
+        Pageable pageable = PageRequest.of(page > 0 ? page - 1 : 0, size, Sort.by("scheduledAt").descending());
+        Page<AppointmentEntity> pageResult;
+
+        if (status != null) {
+            // Nếu có status -> Gọi hàm lọc
+            pageResult = appointmentRepository.findByStatus(status, pageable);
+        } else {
+            // Nếu không -> Lấy tất cả như cũ
+            pageResult = appointmentRepository.findAll(pageable);
+        }
 
         List<AppointmentResponse> list = pageResult.stream()
                 .map(AppointmentResponse::fromEntity)

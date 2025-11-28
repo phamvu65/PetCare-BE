@@ -12,6 +12,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import vn.vuxnye.common.AppointmentStatus;
 import vn.vuxnye.dto.request.AppointmentRequest;
 import vn.vuxnye.dto.response.AppointmentPageResponse;
 import vn.vuxnye.dto.response.AppointmentResponse;
@@ -41,9 +42,11 @@ public class AppointmentController {
     @Operation(summary = "Admin/Staff: Get all appointments")
     public Map<String, Object> getAllAppointments(
             @RequestParam(required = false, defaultValue = "1") int page,
-            @RequestParam(required = false, defaultValue = "10") int size) {
+            @RequestParam(required = false, defaultValue = "10") int size,
+            @RequestParam(required = false) AppointmentStatus status) { // <--- Thêm dòng này
 
-        AppointmentPageResponse response = appointmentService.findAll(page, size);
+        // Truyền status vào service
+        AppointmentPageResponse response = appointmentService.findAll(page, size, status);
         return createResponse(HttpStatus.OK, "Get all appointments success", response);
     }
 

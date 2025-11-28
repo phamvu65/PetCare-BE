@@ -56,7 +56,8 @@ public class AppConfig {
                                 "/swagger-ui.html",
                                 "/user/add",
                                 "/categories/**",
-                                "/products/**"
+                                "/products/**",
+                                "/chat"
                                 )
                         .permitAll()
                         .anyRequest().authenticated())

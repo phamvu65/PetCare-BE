@@ -71,7 +71,7 @@ public class PaymentController {
     /**
      * API Return URL từ VNPay
      * (Cần cấu hình vnp_ReturnUrl trong VnPayConfig trỏ về đây)
-     * VD: http://localhost:8080/api/v1/payments/vnpay-return
+     *
      */
     @GetMapping("/vnpay-return")
     @Operation(summary = "VNPay Return URL")

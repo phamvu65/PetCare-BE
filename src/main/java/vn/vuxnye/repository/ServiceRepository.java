@@ -10,14 +10,18 @@ import vn.vuxnye.model.ServiceEntity;
 public interface ServiceRepository extends JpaRepository<ServiceEntity, Long> {
 
     /**
-     * Search services by name or description
-     * (Can add condition 'active = true' if you only want to show active services to customers)
+     * Search services by name or description AND active status
      */
     @Query("SELECT s FROM ServiceEntity s WHERE " +
             "(:keyword IS NULL OR :keyword = '' OR " +
             "LOWER(s.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(s.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
-    Page<ServiceEntity> searchServices(@Param("keyword") String keyword, Pageable pageable);
+            "LOWER(s.description) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+            "AND (:activeStatus IS NULL OR s.active = :activeStatus)")
+    Page<ServiceEntity> searchServices(
+            @Param("keyword") String keyword,
+            @Param("activeStatus") Boolean activeStatus,
+            Pageable pageable
+    );
 
     boolean existsByName(String name);
 }

@@ -31,11 +31,11 @@ public class ServiceServiceImpl implements ServiceService {
 
     @Override
     @Transactional(readOnly = true)
-    public ServicePageResponse findAll(String keyword, String sort, int page, int size) {
-        log.info("Find all services with keyword: {}", keyword);
+    public ServicePageResponse findAll(String keyword, Boolean active, String sort, int page, int size) {
+        log.info("Find services - Keyword: {}, Active: {}, Page: {}", keyword, active, page);
 
         // Sorting logic
-        Sort.Order order = new Sort.Order(Sort.Direction.ASC, "id");
+        Sort.Order order = new Sort.Order(Sort.Direction.DESC, "id"); // Mặc định sắp xếp mới nhất
         if (StringUtils.hasLength(sort)) {
             Pattern pattern = Pattern.compile("(\\w+?)(:)(.*)");
             Matcher matcher = pattern.matcher(sort);
@@ -52,7 +52,8 @@ public class ServiceServiceImpl implements ServiceService {
         int pageNo = (page > 0) ? page - 1 : 0;
         Pageable pageable = PageRequest.of(pageNo, size, Sort.by(order));
 
-        Page<ServiceEntity> entityPage = serviceRepository.searchServices(keyword, pageable);
+        // Gọi Repository với tham số activeStatus
+        Page<ServiceEntity> entityPage = serviceRepository.searchServices(keyword, active, pageable);
 
         // Convert to DTO
         List<ServiceResponse> serviceList = entityPage.stream()
@@ -72,7 +73,6 @@ public class ServiceServiceImpl implements ServiceService {
     @Override
     @Transactional(readOnly = true)
     public ServiceResponse findById(Long id) {
-        log.info("Find service by id: {}", id);
         ServiceEntity entity = serviceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Service not found with id: " + id));
         return ServiceResponse.fromEntity(entity);
@@ -81,13 +81,6 @@ public class ServiceServiceImpl implements ServiceService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ServiceResponse create(ServiceRequest request) {
-        log.info("Create new service: {}", request.getName());
-
-        // (Optional) Check if name exists
-        // if (serviceRepository.existsByName(request.getName())) {
-        //     throw new RuntimeException("Service name already exists");
-        // }
-
         ServiceEntity newService = ServiceEntity.builder()
                 .name(request.getName())
                 .description(request.getDescription())
@@ -97,16 +90,12 @@ public class ServiceServiceImpl implements ServiceService {
                 .active(request.getActive() != null ? request.getActive() : true)
                 .build();
 
-        ServiceEntity savedService = serviceRepository.save(newService);
-        return ServiceResponse.fromEntity(savedService);
+        return ServiceResponse.fromEntity(serviceRepository.save(newService));
     }
-
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ServiceResponse update(Long id, ServiceRequest request) {
-        log.info("Update service id: {}", id);
-
         ServiceEntity serviceToUpdate = serviceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Service not found with id: " + id));
 
@@ -119,19 +108,17 @@ public class ServiceServiceImpl implements ServiceService {
             serviceToUpdate.setActive(request.getActive());
         }
 
-        ServiceEntity updatedService = serviceRepository.save(serviceToUpdate);
-        return ServiceResponse.fromEntity(updatedService);
+        return ServiceResponse.fromEntity(serviceRepository.save(serviceToUpdate));
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(Long id) {
-        log.warn("Delete service id: {}", id);
+        // Soft Delete: Chuyển active thành false thay vì xóa
+        ServiceEntity service = serviceRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Service not found with id: " + id));
 
-        if (!serviceRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Service not found with id: " + id);
-        }
-        // You can choose Soft Delete (active = false) or Hard Delete
-        serviceRepository.deleteById(id);
+        service.setActive(false);
+        serviceRepository.save(service);
     }
 }

@@ -6,16 +6,14 @@ import vn.vuxnye.dto.response.ServiceResponse;
 
 public interface ServiceService {
 
-    ServicePageResponse findAll(String keyword, String sort, int page, int size);
+    // Thêm tham số boolean active
+    ServicePageResponse findAll(String keyword, Boolean active, String sort, int page, int size);
 
     ServiceResponse findById(Long id);
 
-    // Admin only
     ServiceResponse create(ServiceRequest request);
 
-    // Admin only
     ServiceResponse update(Long id, ServiceRequest request);
 
-    // Admin only
     void delete(Long id);
 }

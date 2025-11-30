@@ -36,23 +36,18 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final ServiceRepository serviceRepository;
 
     /**
-     * Admin/Staff: Lấy tất cả lịch hẹn (có phân trang)
+     * Admin/Staff: Lấy tất cả lịch hẹn (có phân trang + lọc theo User/Status)
+     * 🟢 ĐÃ SỬA: Thêm tham số customerId và gọi repository mới
      */
     @Override
     @Transactional(readOnly = true)
-    public AppointmentPageResponse findAll(int page, int size, AppointmentStatus status) {
-        log.info("Admin finding appointments with status: {}", status);
+    public AppointmentPageResponse findAll(int page, int size, AppointmentStatus status, Long customerId, Long staffId) {
+        log.info("Find appointments. Status: {}, Customer: {}, Staff: {}", status, customerId, staffId);
 
         Pageable pageable = PageRequest.of(page > 0 ? page - 1 : 0, size, Sort.by("scheduledAt").descending());
-        Page<AppointmentEntity> pageResult;
 
-        if (status != null) {
-            // Nếu có status -> Gọi hàm lọc
-            pageResult = appointmentRepository.findByStatus(status, pageable);
-        } else {
-            // Nếu không -> Lấy tất cả như cũ
-            pageResult = appointmentRepository.findAll(pageable);
-        }
+        // Gọi hàm repository đã cập nhật
+        Page<AppointmentEntity> pageResult = appointmentRepository.findAllByFilter(customerId, staffId, status, pageable);
 
         List<AppointmentResponse> list = pageResult.stream()
                 .map(AppointmentResponse::fromEntity)

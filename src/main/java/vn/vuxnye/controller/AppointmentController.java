@@ -16,7 +16,6 @@ import vn.vuxnye.common.AppointmentStatus;
 import vn.vuxnye.dto.request.AppointmentRequest;
 import vn.vuxnye.dto.response.AppointmentPageResponse;
 import vn.vuxnye.dto.response.AppointmentResponse;
-import vn.vuxnye.exception.ResourceNotFoundException;
 import vn.vuxnye.service.AppointmentService;
 
 import java.util.LinkedHashMap;
@@ -35,19 +34,22 @@ public class AppointmentController {
     private final AppointmentService appointmentService;
 
     /**
-     * Admin/Staff: Xem tất cả lịch hẹn
+     * Admin/Staff: Xem tất cả lịch hẹn (Có bộ lọc)
      */
     @GetMapping("/list")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
-    @Operation(summary = "Admin/Staff: Get all appointments")
+    @Operation(summary = "Admin/Staff: Get appointments with filter")
     public Map<String, Object> getAllAppointments(
             @RequestParam(required = false, defaultValue = "1") int page,
             @RequestParam(required = false, defaultValue = "10") int size,
-            @RequestParam(required = false) AppointmentStatus status) { // <--- Thêm dòng này
+            @RequestParam(required = false) AppointmentStatus status,
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) Long staffId) { // 🟢 THÊM DÒNG NÀY
 
-        // Truyền status vào service
-        AppointmentPageResponse response = appointmentService.findAll(page, size, status);
-        return createResponse(HttpStatus.OK, "Get all appointments success", response);
+        // Truyền staffId vào Service
+        AppointmentPageResponse response = appointmentService.findAll(page, size, status, customerId, staffId);
+
+        return createResponse(HttpStatus.OK, "Get appointments success", response);
     }
 
     /**
@@ -121,5 +123,4 @@ public class AppointmentController {
         result.put("data", data);
         return result;
     }
-
 }

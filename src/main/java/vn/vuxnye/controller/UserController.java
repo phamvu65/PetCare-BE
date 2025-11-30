@@ -2,7 +2,6 @@ package vn.vuxnye.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import vn.vuxnye.common.UserStatus;
 import vn.vuxnye.dto.request.UserCreationRequest;
 import vn.vuxnye.dto.request.UserPasswordRequest;
 import vn.vuxnye.dto.request.UserUpdateRequest;
@@ -18,8 +18,8 @@ import vn.vuxnye.dto.response.UserPageResponse;
 import vn.vuxnye.dto.response.UserResponse;
 import vn.vuxnye.service.UserService;
 
-import java.io.IOException;
-import java.util.*;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/user")
@@ -31,15 +31,19 @@ public class UserController {
 
     private final UserService userService;
 
-    @Operation(summary = "Get user list",description = "API retrieve user from db")
+    @Operation(summary = "Get user list", description = "API retrieve user from db with filters")
     @GetMapping("/list")
-    public Map<String,Object> getList(@RequestParam(required = false) String keyword,
-                                    @RequestParam(required = false) String sort,
-                                    @RequestParam(defaultValue = "0") int page,
-                                    @RequestParam(defaultValue = "20") int size) {
-        log.info("get user list");
+    public Map<String,Object> getList(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) UserStatus status,
+            @RequestParam(required = false) Long roleId, // 🟢 THÊM: Lọc theo Role ID
+            @RequestParam(required = false) String sort,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
 
-        UserPageResponse pageResponse = userService.findAll(keyword, sort, page, size);
+        log.info("get user list. Role: {}, Status: {}", roleId, status);
+
+        UserPageResponse pageResponse = userService.findAll(keyword, roleId, status, sort, page, size);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("status", HttpStatus.OK.value());
@@ -49,25 +53,10 @@ public class UserController {
         return result;
     }
 
-    @Operation(summary = "Get user detail",description = "API retrieve user detail by id")
-    @GetMapping("/{userId}")
-    public Map<String, Object> getUserDetail(@PathVariable @Min(value = 1,message ="UserId must be equals or greater than 1") Long userId) {
-        log.info("get user detail:{}", userId);
-
-        UserResponse userDetail= userService.findById(userId);
-
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("status", HttpStatus.OK.value());
-        result.put("message", "User");
-        result.put("data", userDetail);
-        return result;
-    }
-
+    // ... Các API khác giữ nguyên (add, upd, del, restore) ...
     @Operation(summary = "Create User",description = "API add new user to db")
     @PostMapping("/add")
     public ResponseEntity<Object> createUser(@RequestBody @Valid UserCreationRequest request) {
-        log.info("create user:{}", request);
-
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("status", HttpStatus.CREATED.value());
         result.put("message", "User created successfully");
@@ -78,10 +67,7 @@ public class UserController {
     @Operation(summary = "Update User",description = "API update user to db")
     @PutMapping("/upd")
     public Map<String, Object> updateUser(@RequestBody @Valid UserUpdateRequest request) {
-        log.info("update user:{}", request);
-
         userService.update(request);
-
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("status", HttpStatus.ACCEPTED.value());
         result.put("message", "User updated successfully");
@@ -89,40 +75,23 @@ public class UserController {
         return result;
     }
 
-    @Operation(summary = "Change Password",description = "API change password for user to db")
-    @PatchMapping("/change-pwd") //id da co trong request r nen k can bo trong url
-    public Map<String, Object> changePassword(@RequestBody @Valid  UserPasswordRequest request) {
-        log.info("change password:{}", request);
-        userService.changePassword(request);
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("status", HttpStatus.NO_CONTENT.value());
-        result.put("message", "Password updated successfully");
-        result.put("data","");
-        return result;
-    }
-
-    @Operation(summary = "Delete User",description = "API activate user to db")
     @DeleteMapping("/del/{userId}")
-    public Map<String, Object> deleteUser(@PathVariable @Min(value = 1,message ="UserId must be equals or greater than 1") Long userId) {
-        log.info("delete user:{}", userId);
+    public Map<String, Object> deleteUser(@PathVariable Long userId) {
         userService.delete(userId);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("status", HttpStatus.ACCEPTED.value());
-        result.put("message", "User deleted successfully");
+        result.put("message", "User locked successfully");
         result.put("data","");
         return result;
     }
 
-    @GetMapping("/confirm-email")
-    public void confirmEmail(@RequestParam String secretCode, HttpServletResponse response) throws IOException {
-        log.info("confirm email:{}", secretCode);
-        try {
-            // TODO check or compare secretCode from database
-        }catch (Exception e){
-            log.error("Confirm email was failure!,errorMessage={}", e.getMessage());
-        }finally {
-            response.sendRedirect("https://petcare.vn/wp-admin");
-        }
-
+    @PatchMapping("/restore/{userId}")
+    public Map<String, Object> restoreUser(@PathVariable Long userId) {
+        userService.restore(userId);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("status", HttpStatus.OK.value());
+        result.put("message", "User restored successfully");
+        result.put("data", "");
+        return result;
     }
 }

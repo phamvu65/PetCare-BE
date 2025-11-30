@@ -51,16 +51,17 @@ public class OrderController {
      */
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
-    @Operation(summary = "Admin: Get all orders", description = "Retrieve all orders with pagination, status filter, and date range")
+    @Operation(summary = "Admin: Get all orders", description = "Retrieve all orders with pagination, status filter, date range AND userId")
     public Map<String, Object> getAllOrders(
+            @RequestParam(required = false) Long userId, // <--- THÊM DÒNG NÀY
             @RequestParam(required = false) OrderStatus status,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @RequestParam(required = false, defaultValue = "1") int page,
             @RequestParam(required = false, defaultValue = "10") int size) {
 
-        // Service cần cập nhật method này để nhận thêm fromDate, toDate
-        OrderPageResponse response = orderService.getAllOrders(status, fromDate, toDate, page, size);
+        // Bạn cần vào OrderService và cập nhật hàm getAllOrders để nhận thêm userId và truyền xuống Repository
+        OrderPageResponse response = orderService.getAllOrders(userId, status, fromDate, toDate, page, size);
         return createResponse(HttpStatus.OK, "Get all orders success", response);
     }
 

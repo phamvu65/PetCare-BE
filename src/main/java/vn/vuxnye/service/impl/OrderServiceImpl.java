@@ -26,7 +26,7 @@ import vn.vuxnye.service.OrderService;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.*; // Import các class thời gian
+import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -52,8 +52,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional(readOnly = true)
-    public OrderPageResponse getAllOrders(OrderStatus status, LocalDate fromDate, LocalDate toDate, int page, int size) {
-        log.info("Admin fetching orders. Status: {}, Date: {} - {}", status, fromDate, toDate);
+    // 🟢 ĐÃ SỬA: Thêm tham số Long userId
+    public OrderPageResponse getAllOrders(Long userId, OrderStatus status, LocalDate fromDate, LocalDate toDate, int page, int size) {
+        log.info("Admin fetching orders. User: {}, Status: {}, Date: {} - {}", userId, status, fromDate, toDate);
 
         Pageable pageable = PageRequest.of(page > 0 ? page - 1 : 0, size, Sort.by("createdAt").descending());
 
@@ -61,13 +62,11 @@ public class OrderServiceImpl implements OrderService {
         ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
 
         // Convert LocalDate -> Instant
-        // Start: 00:00:00 của ngày bắt đầu
         Instant start = (fromDate != null) ? fromDate.atStartOfDay(zoneId).toInstant() : null;
-
-        // End: 00:00:00 của NGÀY HÔM SAU (để lấy trọn vẹn ngày toDate)
         Instant end = (toDate != null) ? toDate.plusDays(1).atStartOfDay(zoneId).toInstant() : null;
 
-        Page<OrderEntity> orderPage = orderRepository.findOrdersByFilter(status, start, end, pageable);
+        // 🟢 ĐÃ SỬA: Truyền userId vào repository
+        Page<OrderEntity> orderPage = orderRepository.findOrdersByFilter(userId, status, start, end, pageable);
 
         List<OrderResponse> orderResponses = orderPage.stream()
                 .map(order -> OrderResponse.fromEntity(order, order.getTotalAmount()))
@@ -90,20 +89,16 @@ public class OrderServiceImpl implements OrderService {
         ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
 
         Instant start = (fromDate != null) ? fromDate.atStartOfDay(zoneId).toInstant() : null;
-        // Cộng thêm 1 ngày để bao gồm hết đơn hàng của ngày toDate
         Instant end = (toDate != null) ? toDate.plusDays(1).atStartOfDay(zoneId).toInstant() : null;
 
-        // Tính doanh thu (Chỉ tính đơn COMPLETED)
         BigDecimal revenue = orderRepository.countRevenue(OrderStatus.COMPLETED, start, end);
         if (revenue == null) revenue = BigDecimal.ZERO;
 
-        // Đếm số lượng đơn
         Long newOrders = orderRepository.countByStatusAndDate(OrderStatus.PENDING, start, end);
         Long shippingOrders = orderRepository.countByStatusAndDate(OrderStatus.SHIPPING, start, end);
         Long cancelledOrders = orderRepository.countByStatusAndDate(OrderStatus.CANCELLED, start, end);
         Long totalOrders = orderRepository.countTotalByDate(start, end);
 
-        // Lấy danh sách đơn hoàn thành để vẽ biểu đồ
         List<OrderEntity> completedOrders = orderRepository.findCompletedOrdersBetween(OrderStatus.COMPLETED, start, end);
 
         Map<String, BigDecimal> dailyMap = new LinkedHashMap<>();
@@ -111,7 +106,6 @@ public class OrderServiceImpl implements OrderService {
 
         for (OrderEntity order : completedOrders) {
             if (order.getCreatedAt() != null) {
-                // Format Instant -> String (dd/MM) theo múi giờ VN
                 String dateKey = order.getCreatedAt().atZone(zoneId).format(formatter);
                 dailyMap.put(dateKey, dailyMap.getOrDefault(dateKey, BigDecimal.ZERO).add(order.getTotalAmount()));
             }
@@ -130,7 +124,7 @@ public class OrderServiceImpl implements OrderService {
                 .build();
     }
 
-    // --- CÁC HÀM CŨ (KHÔNG THAY ĐỔI) ---
+    // --- CÁC HÀM CŨ GIỮ NGUYÊN (Create, Update, Cancel...) ---
 
     @Override
     public OrderResponse getOrderById(Long id) {

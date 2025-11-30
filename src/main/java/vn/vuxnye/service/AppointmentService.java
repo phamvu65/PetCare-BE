@@ -27,5 +27,5 @@ public interface AppointmentService {
     void cancel(Long id, UserDetails userDetails);
 
     // Thêm tham số status (có thể null)
-    AppointmentPageResponse findAll(int page, int size, AppointmentStatus status);
+    AppointmentPageResponse findAll(int page, int size, AppointmentStatus status, Long customerId, Long staffId);
 }

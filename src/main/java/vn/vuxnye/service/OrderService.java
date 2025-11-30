@@ -5,7 +5,7 @@ import vn.vuxnye.common.OrderStatus;
 import vn.vuxnye.dto.request.OrderRequest;
 import vn.vuxnye.dto.response.OrderPageResponse;
 import vn.vuxnye.dto.response.OrderResponse;
-import vn.vuxnye.dto.response.OrderStatisticResponse; // Nhớ import DTO mới này
+import vn.vuxnye.dto.response.OrderStatisticResponse;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -30,8 +30,9 @@ public interface OrderService {
     // 6. Hủy đơn hàng (User)
     void cancelOrderUser(Long id, UserDetails userDetails);
 
-    // 7. [CẬP NHẬT] Lấy danh sách đơn hàng (Admin - có lọc theo ngày)
-    OrderPageResponse getAllOrders(OrderStatus status, LocalDate fromDate, LocalDate toDate, int page, int size);
+    // 7. [CẬP NHẬT] Lấy danh sách đơn hàng (Admin - có lọc theo user và ngày)
+    // 🟢 ĐÃ SỬA: Thêm tham số Long userId vào đầu
+    OrderPageResponse getAllOrders(Long userId, OrderStatus status, LocalDate fromDate, LocalDate toDate, int page, int size);
 
     // 8. [MỚI] Lấy thống kê cho Dashboard
     OrderStatisticResponse getStatistics(LocalDate fromDate, LocalDate toDate);

@@ -58,4 +58,15 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
             "WHERE a.status = :status",
             countQuery = "SELECT COUNT(a) FROM AppointmentEntity a WHERE a.status = :status")
     Page<AppointmentEntity> findByStatus(@Param("status") AppointmentStatus status, Pageable pageable);
+
+    @Query("SELECT a FROM AppointmentEntity a WHERE " +
+            "(:customerId IS NULL OR a.customer.id = :customerId) AND " +
+            "(:staffId IS NULL OR a.staff.id = :staffId) AND " +
+            "(:status IS NULL OR a.status = :status)")
+    Page<AppointmentEntity> findAllByFilter(
+            @Param("customerId") Long customerId,
+            @Param("staffId") Long staffId,            // <--- Vị trí số 2
+            @Param("status") AppointmentStatus status, // <--- Vị trí số 3
+            Pageable pageable);
+
 }

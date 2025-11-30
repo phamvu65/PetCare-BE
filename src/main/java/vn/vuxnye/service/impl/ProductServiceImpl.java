@@ -18,6 +18,7 @@ import vn.vuxnye.model.ProductEntity;
 import vn.vuxnye.model.ProductImageEntity;
 import vn.vuxnye.repository.CategoryRepository;
 import vn.vuxnye.repository.ProductRepository;
+import vn.vuxnye.service.FileUploadService;
 import vn.vuxnye.service.ProductService;
 
 import java.util.ArrayList;
@@ -33,6 +34,7 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final FileUploadService fileUploadService;
 
     @Override
     @Transactional(readOnly = true)
@@ -105,10 +107,13 @@ public class ProductServiceImpl implements ProductService {
 
         if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
             List<ProductImageEntity> images = new ArrayList<>();
-            for (String url : request.getImageUrls()) {
+
+            for (String urlInput : request.getImageUrls()) {
+                String finalUrl = processImageUrl(urlInput); // Xử lý URL
+
                 ProductImageEntity img = new ProductImageEntity();
                 img.setProduct(product);
-                img.setImageUrl(url);
+                img.setImageUrl(finalUrl);
                 images.add(img);
             }
             product.setImages(images);
@@ -136,12 +141,16 @@ public class ProductServiceImpl implements ProductService {
         product.setPrice(request.getPrice());
         product.setStock(request.getStock());
 
+        // Update Images
         if (request.getImageUrls() != null) {
-            product.getImages().clear();
-            for (String url : request.getImageUrls()) {
+            product.getImages().clear(); // Xóa cũ
+
+            for (String urlInput : request.getImageUrls()) {
+                String finalUrl = processImageUrl(urlInput); // Xử lý URL
+
                 ProductImageEntity img = new ProductImageEntity();
                 img.setProduct(product);
-                img.setImageUrl(url);
+                img.setImageUrl(finalUrl);
                 product.getImages().add(img);
             }
         }
@@ -176,5 +185,21 @@ public class ProductServiceImpl implements ProductService {
         product.setIsDeleted(false);
 
         productRepository.save(product);
+    }
+
+    private String processImageUrl(String urlInput) {
+        // Nếu link đã là của Cloudinary rồi (do bước upload file trước đó) thì thôi
+        if (urlInput.contains("cloudinary.com")) {
+            return urlInput;
+        }
+
+        // Nếu là link ngoài (Google, Facebook...), tải nó về Cloudinary mình
+        try {
+            return fileUploadService.uploadFromUrl(urlInput);
+        } catch (Exception e) {
+            // Nếu lỗi (link chết, không tải được), log ra và vẫn giữ link cũ (hoặc bỏ qua)
+            log.error("Failed to fetch image from URL: {}", urlInput, e);
+            return urlInput; // Fallback: vẫn lưu link gốc
+        }
     }
 }

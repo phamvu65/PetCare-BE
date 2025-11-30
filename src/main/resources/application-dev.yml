@@ -25,6 +25,12 @@ spring:
     templateId: d-d5d0b72e441f4da8913baf9e330aceeb
     verificationLink: http://localhost:8080/user/confirm-email
 
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB      # Giới hạn kích thước 1 file
+      max-request-size: 10MB   # Giới hạn tổng kích thước request (nếu up nhiều file)
+
 # application-dev.yml
 springdoc:
   api-docs:
@@ -52,3 +58,9 @@ vnpay:
 
 gemini:
   api-key: AIzaSyCDKGYDC3Rr75xKZ1pwk9BX9e5_8rovKog
+
+cloudinary:
+  cloud-name: dwcxk4ihr
+  api-key: 542292927643341
+  api-secret: ${CLOUDINARY_API_SECRET}
+

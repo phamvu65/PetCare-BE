@@ -94,4 +94,30 @@ public class UserController {
         result.put("data", "");
         return result;
     }
+
+    @Operation(summary = "Get user detail", description = "API retrieve user detail by id")
+    @GetMapping("/{userId}")
+    public Map<String, Object> getUserDetail(@PathVariable @Min(value = 1, message = "UserId must be equals or greater than 1") Long userId) {
+        log.info("get user detail:{}", userId);
+
+        // Gọi service lấy thông tin
+        UserResponse userDetail = userService.findById(userId);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("status", HttpStatus.OK.value());
+        result.put("message", "User details retrieved successfully");
+        result.put("data", userDetail);
+        return result;
+    }
+    @Operation(summary = "Change Password", description = "API change password for user to db")
+    @PatchMapping("/change-pwd") // 🟢 BẮT BUỘC PHẢI LÀ @PatchMapping (vì Frontend gọi api.patch)
+    public Map<String, Object> changePassword(@RequestBody @Valid UserPasswordRequest request) {
+        log.info("change password:{}", request);
+        userService.changePassword(request);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("status", HttpStatus.OK.value()); // Hoặc HttpStatus.NO_CONTENT.value()
+        result.put("message", "Password updated successfully");
+        result.put("data", "");
+        return result;
+    }
 }

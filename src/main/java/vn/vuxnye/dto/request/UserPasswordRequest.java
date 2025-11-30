@@ -1,27 +1,25 @@
 package vn.vuxnye.dto.request;
 
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.io.Serializable;
-import java.util.Date;
 
 @Getter
-public class UserPasswordRequest implements Serializable{
-    @NotNull(message = "Id must be not null")
-    @Min(value = 1,message ="UserId must be equals or greater than 1"  )
-    private Long id;
+@Setter // 🟢 Thêm @Setter để Jackson binding dữ liệu JSON vào object
+public class UserPasswordRequest implements Serializable {
 
-    @NotBlank(message = "Old password must be not blank")
+    // 🔴 ĐÃ XÓA field ID vì không cần thiết (lấy user từ Token)
+
+    @NotBlank(message = "Mật khẩu cũ không được để trống")
     private String oldPassword;
 
-    @NotBlank(message = "Password must be not blank")
+    @NotBlank(message = "Mật khẩu mới không được để trống")
+    @Size(min = 6, message = "Mật khẩu mới phải có ít nhất 6 ký tự")
     private String password;
 
-    @NotBlank(message = "Confirm password must be not blank")
+    @NotBlank(message = "Xác nhận mật khẩu không được để trống")
     private String confirmPassword;
-
-
 }

@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.security.core.context.SecurityContextHolder; // 🟢 QUAN TRỌNG: Cần import cái này
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -130,22 +131,14 @@ public class UserServiceImpl implements UserService {
             throw new InvalidDataException("Email already exists");
         }
 
-        // 🟢 LOGIC MỚI: Xử lý Role mặc định
-        // Nếu không truyền roleId (hoặc = 0), mặc định gán là CUSTOMER (ID = 1)
+        // Logic Role mặc định
         Long roleIdToUse = req.getRoleId();
         if (roleIdToUse == null || roleIdToUse <= 0) {
             roleIdToUse = 1L;
-            log.info("No role provided, defaulting to CUSTOMER (ID=1)");
         }
 
         RoleEntity role = roleRepository.findById(roleIdToUse)
-                .orElseThrow(() -> new ResourceNotFoundException("Role not found with id = " + req.getRoleId()));
-
-        // Chặn không cho tạo ADMIN qua API thường (nếu muốn)
-        if(role.getName().toUpperCase().equals("ADMIN")){
-            // throw new PermissionDenyException("Bạn không thể đăng ký tài khoản admin");
-            // Tạm comment để bạn test cho dễ nếu cần tạo admin
-        }
+                .orElseThrow(() -> new ResourceNotFoundException("Role not found"));
 
         UserEntity user = new UserEntity();
         user.setFirstName(req.getFirstName());
@@ -154,13 +147,12 @@ public class UserServiceImpl implements UserService {
         user.setEmail(req.getEmail());
         user.setPhone(req.getPhone());
         user.getRoles().add(role);
-        user.setStatus(UserStatus.ACTIVE); // Mặc định ACTIVE
+        user.setStatus(UserStatus.ACTIVE);
         user.setPassword(passwordEncoder.encode(req.getPassword()));
 
         userRepository.save(user);
-        log.info("Saved user:{}", user);
 
-        // Logic Address
+        // Address Logic
         if (req.getAddresses() != null && !req.getAddresses().isEmpty()) {
             List<AddressEntity> addresses = new ArrayList<>();
             int defaultIndex = -1;
@@ -187,7 +179,7 @@ public class UserServiceImpl implements UserService {
             addressRepository.saveAll(addresses);
         }
 
-        // Send email
+        // Email logic
         try {
             emailService.emailValidation(req.getEmail(), req.getUserName());
         } catch (Exception e) {
@@ -208,17 +200,39 @@ public class UserServiceImpl implements UserService {
         user.setEmail(req.getEmail());
         user.setPhone(req.getPhone());
         userRepository.save(user);
-        log.info("Updated user:{}", user);
     }
 
+    // 🟢 ĐÂY LÀ ĐOẠN CODE BỊ THIẾU LOGIC TRƯỚC ĐÓ
     @Override
     public void changePassword(UserPasswordRequest req) {
-        // (Giữ nguyên logic của bạn)
+        log.info("Processing change password request");
+
+        // 1. Lấy username của người dùng đang đăng nhập
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        // 2. Tìm user trong DB
+        UserEntity user = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + currentUsername));
+
+        // 3. Kiểm tra mật khẩu cũ có đúng không
+        if (!passwordEncoder.matches(req.getOldPassword(), user.getPassword())) {
+            throw new InvalidDataException("Mật khẩu cũ không chính xác");
+        }
+
+        // 4. Kiểm tra mật khẩu mới và xác nhận có khớp không (nếu FE chưa check)
+        if (!req.getPassword().equals(req.getConfirmPassword())) {
+            throw new InvalidDataException("Mật khẩu xác nhận không khớp");
+        }
+
+        // 5. Mã hóa mật khẩu mới và lưu xuống DB
+        user.setPassword(passwordEncoder.encode(req.getPassword()));
+        userRepository.save(user); // ⚠️ QUAN TRỌNG: Phải có lệnh save()
+
+        log.info("Password changed successfully for user: {}", currentUsername);
     }
 
     @Override
     public void delete(Long id) {
-        log.info("delete/lock user: {}", id);
         UserEntity user = getUserEntity(id);
         user.setStatus(UserStatus.INACTIVE);
         userRepository.save(user);
@@ -226,7 +240,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void restore(Long id) {
-        log.info("restore user: {}", id);
         UserEntity user = getUserEntity(id);
         user.setStatus(UserStatus.ACTIVE);
         userRepository.save(user);

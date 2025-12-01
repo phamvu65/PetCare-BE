@@ -2,6 +2,7 @@ package vn.vuxnye.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import vn.vuxnye.model.CouponEntity;
 
@@ -20,4 +21,6 @@ public interface CouponRepository extends JpaRepository<CouponEntity, Long> {
     List<CouponEntity> findValidCoupons(LocalDateTime now);
 
     boolean existsByCode(String code);
+    @Query(value = "SELECT COUNT(*) FROM order_coupons WHERE coupon_id = :couponId", nativeQuery = true)
+    long countUsage(@Param("couponId") Long couponId);
 }

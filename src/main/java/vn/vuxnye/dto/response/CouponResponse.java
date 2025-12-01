@@ -27,6 +27,7 @@ public class CouponResponse {
 
     private Integer usageLimit;
     private Boolean active;
+    private Long usedCount;
 
     public static CouponResponse fromEntity(CouponEntity entity) {
         return CouponResponse.builder()

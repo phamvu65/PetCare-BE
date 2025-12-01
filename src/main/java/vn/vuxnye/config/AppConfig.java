@@ -72,9 +72,7 @@ public class AppConfig {
                 .requestMatchers("/actuator/**", "/v3/**", "/webjars/**", "/swagger-ui*/*swagger-initializer.js", "/swagger-ui*/**");
     }
 
-    // ❌ ĐÃ XÓA BEAN corsConfigurer GÂY XUNG ĐỘT Ở ĐÂY
 
-    // ✅ GIỮ LẠI BEAN NÀY (Cấu hình chuẩn cho Security)
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();

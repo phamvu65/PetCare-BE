@@ -46,26 +46,25 @@ public class OrderServiceImpl implements OrderService {
     private final AddressRepository addressRepository;
     private final CartRepository cartRepository;
     private final CouponRepository couponRepository;
+
+    // 🟢 INJECT REPOSITORY MỚI
+    private final OrderCouponRepository orderCouponRepository;
+
     private final CartService cartService;
 
-    // --- 1. LOGIC MỚI: QUẢN LÝ & THỐNG KÊ (ADMIN) ---
+    // --- 1. LOGIC QUẢN LÝ & THỐNG KÊ (ADMIN) ---
 
     @Override
     @Transactional(readOnly = true)
-    // 🟢 ĐÃ SỬA: Thêm tham số Long userId
     public OrderPageResponse getAllOrders(Long userId, OrderStatus status, LocalDate fromDate, LocalDate toDate, int page, int size) {
         log.info("Admin fetching orders. User: {}, Status: {}, Date: {} - {}", userId, status, fromDate, toDate);
 
         Pageable pageable = PageRequest.of(page > 0 ? page - 1 : 0, size, Sort.by("createdAt").descending());
-
-        // 🟢 CẤU HÌNH MÚI GIỜ VIỆT NAM
         ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
 
-        // Convert LocalDate -> Instant
         Instant start = (fromDate != null) ? fromDate.atStartOfDay(zoneId).toInstant() : null;
         Instant end = (toDate != null) ? toDate.plusDays(1).atStartOfDay(zoneId).toInstant() : null;
 
-        // 🟢 ĐÃ SỬA: Truyền userId vào repository
         Page<OrderEntity> orderPage = orderRepository.findOrdersByFilter(userId, status, start, end, pageable);
 
         List<OrderResponse> orderResponses = orderPage.stream()
@@ -85,7 +84,6 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(readOnly = true)
     public OrderStatisticResponse getStatistics(LocalDate fromDate, LocalDate toDate) {
-        // 🟢 CẤU HÌNH MÚI GIỜ VIỆT NAM
         ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
 
         Instant start = (fromDate != null) ? fromDate.atStartOfDay(zoneId).toInstant() : null;
@@ -124,7 +122,7 @@ public class OrderServiceImpl implements OrderService {
                 .build();
     }
 
-    // --- CÁC HÀM CŨ GIỮ NGUYÊN (Create, Update, Cancel...) ---
+    // --- CÁC HÀM CŨ GIỮ NGUYÊN ---
 
     @Override
     public OrderResponse getOrderById(Long id) {
@@ -145,6 +143,7 @@ public class OrderServiceImpl implements OrderService {
         BigDecimal provisionalTotal = BigDecimal.ZERO;
 
         if (request.getItems() != null && !request.getItems().isEmpty()) {
+            // Mua ngay (Buy Now)
             for (OrderItemRequest itemReq : request.getItems()) {
                 OrderDetailEntity detail = createOrderDetail(itemReq.getProductId(), itemReq.getQuantity());
                 orderDetails.add(detail);
@@ -152,6 +151,7 @@ public class OrderServiceImpl implements OrderService {
                 provisionalTotal = provisionalTotal.add(linePrice);
             }
         } else {
+            // Mua từ Giỏ hàng
             CartEntity cart = cartRepository.findByUsername(user.getUsername())
                     .orElseThrow(() -> new ResourceNotFoundException("Cart is empty"));
             if (cart.getItems().isEmpty()) { throw new RuntimeException("Giỏ hàng trống"); }
@@ -171,21 +171,35 @@ public class OrderServiceImpl implements OrderService {
         order.setNote(request.getNote());
         order.setShippingAddress(address.getAddressDetail() + ", " + address.getWard() + ", " + address.getCity());
 
+        // 🟢 XỬ LÝ COUPON (Logic Mới)
         BigDecimal discountAmount = BigDecimal.ZERO;
+        CouponEntity appliedCoupon = null;
+
         if (request.getCouponCode() != null && !request.getCouponCode().isBlank()) {
-            CouponEntity coupon = validateCoupon(request.getCouponCode(), provisionalTotal);
-            if (coupon.getType() == CouponType.percent) {
-                BigDecimal percent = coupon.getValue().divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            // Validate coupon và CHECK LIMIT
+            appliedCoupon = validateCoupon(request.getCouponCode(), provisionalTotal);
+
+            if (appliedCoupon.getType() == CouponType.percent) {
+                BigDecimal percent = appliedCoupon.getValue().divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
                 discountAmount = provisionalTotal.multiply(percent);
             } else {
-                discountAmount = coupon.getValue();
+                discountAmount = appliedCoupon.getValue();
+            }
+
+            // Không giảm quá giá trị đơn hàng
+            if (discountAmount.compareTo(provisionalTotal) > 0) {
+                discountAmount = provisionalTotal;
             }
         }
+
         BigDecimal finalTotal = provisionalTotal.subtract(discountAmount);
         if (finalTotal.compareTo(BigDecimal.ZERO) < 0) { finalTotal = BigDecimal.ZERO; }
         order.setTotalAmount(finalTotal);
 
+        // Lưu đơn hàng trước
         OrderEntity savedOrder = orderRepository.save(order);
+
+        // Lưu chi tiết đơn hàng & Trừ tồn kho
         for (OrderDetailEntity detail : orderDetails) {
             detail.setOrder(savedOrder);
             ProductEntity product = detail.getProduct();
@@ -195,9 +209,20 @@ public class OrderServiceImpl implements OrderService {
         savedOrder.setOrderDetails(new java.util.HashSet<>(orderDetails));
         orderRepository.save(savedOrder);
 
+        // 🟢 LƯU LỊCH SỬ DÙNG COUPON (Quan trọng để tính limit)
+        if (appliedCoupon != null) {
+            OrderCouponEntity orderCoupon = new OrderCouponEntity();
+            orderCoupon.setOrder(savedOrder);
+            orderCoupon.setCoupon(appliedCoupon);
+            orderCoupon.setDiscountValue(discountAmount);
+            orderCouponRepository.save(orderCoupon);
+        }
+
+        // Xóa giỏ hàng nếu mua từ giỏ
         if (request.getItems() == null || request.getItems().isEmpty()) {
             cartService.clearCart(user.getUsername());
         }
+
         return OrderResponse.fromEntity(savedOrder, savedOrder.getTotalAmount());
     }
 
@@ -251,6 +276,7 @@ public class OrderServiceImpl implements OrderService {
         if (current == OrderStatus.CANCELLED || current == OrderStatus.COMPLETED || current == OrderStatus.REFUNDED) {
             throw new RuntimeException("Không thể thay đổi trạng thái đơn hàng đã kết thúc (" + current + ")");
         }
+        // Logic check status transition giữ nguyên...
         switch (next) {
             case PAID: if (current != OrderStatus.PENDING && current != OrderStatus.SHIPPING && current != OrderStatus.DELIVERED) throw new RuntimeException("Lỗi trạng thái"); break;
             case SHIPPING: if (current != OrderStatus.PENDING && current != OrderStatus.PAID) throw new RuntimeException("Lỗi trạng thái"); break;
@@ -275,10 +301,27 @@ public class OrderServiceImpl implements OrderService {
         return detail;
     }
 
+    // 🟢 HÀM VALIDATE COUPON (Đã thêm check số lượng)
     private CouponEntity validateCoupon(String code, BigDecimal orderValue) {
         CouponEntity coupon = couponRepository.findByCode(code).orElseThrow(() -> new RuntimeException("Mã giảm giá không tồn tại"));
+
         if (!coupon.getActive()) throw new RuntimeException("Mã không hợp lệ");
+
+        // Check ngày
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isBefore(coupon.getStartsAt()) || now.isAfter(coupon.getEndsAt())) {
+            throw new RuntimeException("Mã giảm giá chưa diễn ra hoặc đã hết hạn");
+        }
+
+        // Check giá trị đơn hàng
         if (orderValue.compareTo(coupon.getMinOrderValue()) < 0) throw new RuntimeException("Đơn hàng chưa đạt giá trị tối thiểu");
+
+        // 🟢 Check số lượng đã dùng
+        long usedCount = couponRepository.countUsage(coupon.getId());
+        if (usedCount >= coupon.getUsageLimit()) {
+            throw new RuntimeException("Mã giảm giá đã hết lượt sử dụng!");
+        }
+
         return coupon;
     }
 }

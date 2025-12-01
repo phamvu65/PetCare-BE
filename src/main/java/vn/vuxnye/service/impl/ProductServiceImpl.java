@@ -37,24 +37,12 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public ProductPageResponse findAll(String keyword, String sort, int page, int size, List<Long> categoryIds, Boolean isDeleted) {
-        log.info("Searching products. Keyword: '{}', Categories: {}, Deleted: {}", keyword, categoryIds, isDeleted);
+        log.info("Find all products. Keyword: {}, Categories: {}, Deleted: {}", keyword, categoryIds, isDeleted);
 
-        // Mặc định lấy sản phẩm chưa xóa (false) nếu không chỉ định
+        // Mặc định nếu không truyền isDeleted thì coi như lấy sản phẩm CHƯA xóa (false)
         boolean deletedStatus = (isDeleted != null) ? isDeleted : false;
 
-        // 🟢 XỬ LÝ KEYWORD TẠI JAVA: Thêm % và lowercase
-        String searchKeyword = null;
-        if (StringUtils.hasLength(keyword)) {
-            searchKeyword = "%" + keyword.toLowerCase() + "%";
-        }
-
-        // 🟢 XỬ LÝ CATEGORY: Nếu list rỗng thì set null để query bỏ qua điều kiện IN
-        List<Long> filterCategoryIds = categoryIds;
-        if (categoryIds != null && categoryIds.isEmpty()) {
-            filterCategoryIds = null;
-        }
-
-        // 1. Xử lý Sort (id:desc, price:asc...)
+        // 1. Xử lý Sort
         Sort.Order order = new Sort.Order(Sort.Direction.ASC, "id");
         if (StringUtils.hasLength(sort)) {
             Pattern pattern = Pattern.compile("(\\w+?)(:)(.*)");
@@ -72,15 +60,16 @@ public class ProductServiceImpl implements ProductService {
         int pageNo = (page > 0) ? page - 1 : 0;
         Pageable pageable = PageRequest.of(pageNo, size, Sort.by(order));
 
-        // 2. Gọi Repository với keyword đã xử lý
-        Page<ProductEntity> entityPage = productRepository.searchProducts(searchKeyword, filterCategoryIds, deletedStatus, pageable);
+        // 2. Gọi Repository (Đã cập nhật để nhận thêm tham số deletedStatus)
+        // 🟢 QUAN TRỌNG: Truyền deletedStatus vào đây
+        Page<ProductEntity> entityPage = productRepository.searchProducts(keyword, categoryIds, deletedStatus, pageable);
 
-        // 3. Convert Entity -> DTO
+        // 3. Convert Entity sang DTO
         List<ProductResponse> productList = entityPage.stream()
                 .map(ProductResponse::fromEntity)
                 .toList();
 
-        // 4. Đóng gói Response
+        // 4. Tạo response
         ProductPageResponse response = new ProductPageResponse();
         response.setProducts(productList);
         response.setPageNumber(page);
@@ -147,10 +136,7 @@ public class ProductServiceImpl implements ProductService {
         product.setPrice(request.getPrice());
         product.setStock(request.getStock());
 
-        // Cập nhật ảnh (Xóa cũ thêm mới - Logic đơn giản)
         if (request.getImageUrls() != null) {
-            // Trong thực tế nên xử lý update thông minh hơn để tránh ID nhảy liên tục,
-            // nhưng ở đây ta clear list cũ và add list mới cho nhanh gọn.
             product.getImages().clear();
             for (String url : request.getImageUrls()) {
                 ProductImageEntity img = new ProductImageEntity();

@@ -20,7 +20,7 @@ spring:
       format_sql: true
       ddl-auto: none
   sendgrid:
-    api-key: ${SENDGRID_API_KEY}
+    api-key: ${SENDGRID_API_KEY:SG.dummy_key_for_testing_only}
     from-email: phamvu65cs@gmail.com
     templateId: d-d5d0b72e441f4da8913baf9e330aceeb
     verificationLink: http://localhost:8080/user/confirm-email
@@ -62,5 +62,5 @@ gemini:
 cloudinary:
   cloud-name: dwcxk4ihr
   api-key: 542292927643341
-  api-secret: ${CLOUDINARY_API_SECRET}
+  api-secret: ${CLOUDINARY_API_SECRET:SG.dummy_key_for_testing_only}
 

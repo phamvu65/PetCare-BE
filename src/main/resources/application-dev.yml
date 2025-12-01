@@ -7,7 +7,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/pet_care
     username: root
-    password: 1234
+    password:
     hikari: # Connection poll
       max-lifetime: 300000      # 5 phút
       idle-timeout: 60000       # 1 phút

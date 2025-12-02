@@ -38,4 +38,12 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
             "LEFT JOIN FETCH p.images " +
             "WHERE p.id = :id")
     Optional<ProductEntity> findByIdWithDetails(@Param("id") Long id);
+
+    List<ProductEntity> findByNameContainingIgnoreCase(String name);
+
+    @Query("SELECT p FROM ProductEntity p LEFT JOIN p.category c WHERE " +
+            "LOWER(p.name) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    List<ProductEntity> searchEverything(@Param("keyword") String keyword);
 }

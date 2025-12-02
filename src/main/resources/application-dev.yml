@@ -57,7 +57,7 @@ vnpay:
   return-url: http://localhost:8080/payments/vnpay-return
 
 gemini:
-  api-key: AIzaSyCDKGYDC3Rr75xKZ1pwk9BX9e5_8rovKog
+  api-key: AIzaSyCsFJnWkzK3xzDQqz08FfbWVJv38GOSRzw
 
 cloudinary:
   cloud-name: dwcxk4ihr

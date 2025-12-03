@@ -57,7 +57,8 @@ public class AppConfig {
                                 "/user/add",
                                 "/categories/**",
                                 "/products/**",
-                                "/chat"
+                                "/chat",
+                        "/payments/vnpay-return"
                                 )
                         .permitAll()
                         .anyRequest().authenticated())

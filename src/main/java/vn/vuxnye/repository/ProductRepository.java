@@ -19,15 +19,24 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
      * - Sử dụng Alias 'c' cho Category để truy vấn chính xác hơn.
      * - Tìm kiếm trong: Tên SP, Tên Danh Mục, hoặc Mô Tả SP.
      */
-    @Query("SELECT DISTINCT p FROM ProductEntity p " +
-            "LEFT JOIN FETCH p.images " +
-            "LEFT JOIN FETCH p.category c " + // 🟢 Gán alias 'c'
-            "WHERE (:keyword IS NULL OR " +
-            "       (LOWER(p.name) LIKE :keyword OR " +
-            "        LOWER(p.description) LIKE :keyword OR " + // 🟢 Thêm tìm trong mô tả
-            "        LOWER(c.name) LIKE :keyword)) " +         // 🟢 Tìm theo tên danh mục (c.name)
-            "AND (:categoryIds IS NULL OR c.id IN :categoryIds) " +
-            "AND (p.isDeleted = :isDeleted)")
+    @Query(value = "SELECT p.* FROM products p " +
+            "LEFT JOIN categories c ON p.category_id = c.id " +
+            "WHERE (:keyword IS NULL OR :keyword = '' OR " +
+            "       p.name LIKE :keyword OR " +
+            "       p.description LIKE :keyword OR " +
+            "       c.name LIKE :keyword) " +
+            "AND (:categoryIds IS NULL OR c.id IN (:categoryIds)) " +
+            "AND p.is_deleted = :isDeleted",
+
+            countQuery = "SELECT count(*) FROM products p " +
+                    "LEFT JOIN categories c ON p.category_id = c.id " +
+                    "WHERE (:keyword IS NULL OR :keyword = '' OR " +
+                    "       p.name LIKE :keyword OR " +
+                    "       p.description LIKE :keyword OR " +
+                    "       c.name LIKE :keyword) " +
+                    "AND (:categoryIds IS NULL OR c.id IN (:categoryIds)) " +
+                    "AND p.is_deleted = :isDeleted",
+            nativeQuery = true)
     Page<ProductEntity> searchProducts(@Param("keyword") String keyword,
                                        @Param("categoryIds") List<Long> categoryIds,
                                        @Param("isDeleted") boolean isDeleted,

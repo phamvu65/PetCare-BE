@@ -5,7 +5,7 @@ spring:
   devtools:
     add-properties: true
   datasource:
-    url: jdbc:mysql://localhost:3306/pet_care
+    url: jdbc:mysql://localhost:3306/pet_care?useUnicode=true&characterEncoding=UTF-8&useSSL=false&connectionCollation=utf8mb4_unicode_ci
     username: root
     password:
     hikari: # Connection poll
@@ -19,6 +19,9 @@ spring:
     hibernate:
       format_sql: true
       ddl-auto: none
+    properties:
+      hibernate:
+        default_batch_fetch_size: 50
   sendgrid:
     api-key: ${SENDGRID_API_KEY:SG.dummy_key_for_testing_only}
     from-email: phamvu65cs@gmail.com
@@ -31,7 +34,11 @@ spring:
       max-file-size: 10MB      # Giới hạn kích thước 1 file
       max-request-size: 10MB   # Giới hạn tổng kích thước request (nếu up nhiều file)
 
-# application-dev.yml
+logging:
+  level:
+    org.hibernate.orm.jdbc.bind: TRACE
+
+
 springdoc:
   api-docs:
     enabled: true
@@ -63,4 +70,3 @@ cloudinary:
   cloud-name: dwcxk4ihr
   api-key: 542292927643341
   api-secret: ${CLOUDINARY_API_SECRET:SG.dummy_key_for_testing_only}
-

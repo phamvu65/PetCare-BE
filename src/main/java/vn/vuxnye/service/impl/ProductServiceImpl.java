@@ -39,8 +39,14 @@ public class ProductServiceImpl implements ProductService {
     public ProductPageResponse findAll(String keyword, String sort, int page, int size, List<Long> categoryIds, Boolean isDeleted) {
         log.info("Find all products. Keyword: {}, Categories: {}, Deleted: {}", keyword, categoryIds, isDeleted);
 
-        // Mặc định nếu không truyền isDeleted thì coi như lấy sản phẩm CHƯA xóa (false)
         boolean deletedStatus = (isDeleted != null) ? isDeleted : false;
+
+        // 🟢 CẬP NHẬT: Chỉ thêm dấu %, KHÔNG dùng toLowerCase() nữa
+        // Để MySQL tự xử lý việc so sánh hoa/thường
+        String searchKeyword = null;
+        if (StringUtils.hasLength(keyword)) {
+            searchKeyword = "%" + keyword.trim() + "%";
+        }
 
         // 1. Xử lý Sort
         Sort.Order order = new Sort.Order(Sort.Direction.ASC, "id");
@@ -60,9 +66,8 @@ public class ProductServiceImpl implements ProductService {
         int pageNo = (page > 0) ? page - 1 : 0;
         Pageable pageable = PageRequest.of(pageNo, size, Sort.by(order));
 
-        // 2. Gọi Repository (Đã cập nhật để nhận thêm tham số deletedStatus)
-        // 🟢 QUAN TRỌNG: Truyền deletedStatus vào đây
-        Page<ProductEntity> entityPage = productRepository.searchProducts(keyword, categoryIds, deletedStatus, pageable);
+        // 2. Gọi Repository
+        Page<ProductEntity> entityPage = productRepository.searchProducts(searchKeyword, categoryIds, deletedStatus, pageable);
 
         // 3. Convert Entity sang DTO
         List<ProductResponse> productList = entityPage.stream()

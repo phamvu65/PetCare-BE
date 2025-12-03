@@ -2,23 +2,23 @@ package vn.vuxnye.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest; // Import
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse; // Import thêm
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity; // Import
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import vn.vuxnye.config.VnPayConfig; // Import
+import vn.vuxnye.config.VnPayConfig;
 import vn.vuxnye.dto.request.PaymentRequest;
 import vn.vuxnye.dto.response.PaymentResponse;
 import vn.vuxnye.service.PaymentService;
 
-import java.time.Instant;
+import java.io.IOException; // Import thêm
 import java.util.*;
 
 @RestController
@@ -31,6 +31,9 @@ public class PaymentController {
     private final PaymentService paymentService;
     private final VnPayConfig vnPayConfig;
 
+    // Cấu hình URL frontend (Nên đưa vào file properties)
+    private static final String FRONTEND_URL = "http://localhost:5173/payment-result";
+
     @PostMapping("/create")
     @PreAuthorize("hasRole('CUSTOMER')")
     public Map<String, Object> createPayment(
@@ -40,9 +43,6 @@ public class PaymentController {
         return createResponse(HttpStatus.OK, "Payment initiated", response);
     }
 
-    /**
-     * [MỚI] Xem lịch sử thanh toán của đơn hàng
-     */
     @GetMapping("/history/{orderId}")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Get payment history of an order")
@@ -54,9 +54,6 @@ public class PaymentController {
         return createResponse(HttpStatus.OK, "Payment history", history);
     }
 
-    /**
-     * [MỚI] Xem giao dịch thanh toán thành công
-     */
     @GetMapping("/success/{orderId}")
     @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Get successful payment details")
@@ -70,12 +67,11 @@ public class PaymentController {
 
     /**
      * API Return URL từ VNPay
-     * (Cần cấu hình vnp_ReturnUrl trong VnPayConfig trỏ về đây)
-     *
+     * Thay đổi: Dùng HttpServletResponse để Redirect về Frontend
      */
     @GetMapping("/vnpay-return")
     @Operation(summary = "VNPay Return URL")
-    public ResponseEntity<?> vnpayReturn(HttpServletRequest request) {
+    public void vnpayReturn(HttpServletRequest request, HttpServletResponse response) throws IOException {
         Map<String, String> fields = new HashMap<>();
         for (Enumeration<String> params = request.getParameterNames(); params.hasMoreElements();) {
             String fieldName = params.nextElement();
@@ -97,30 +93,28 @@ public class PaymentController {
         String signValue = vnPayConfig.hmacSHA512(vnPayConfig.getVnp_HashSecret(), buildHashData(fields));
 
         if (signValue.equals(vnp_SecureHash)) {
+            String txnRef = request.getParameter("vnp_TxnRef");
+            String orderIdStr = txnRef.split("_")[0]; // Lấy ID đơn hàng
+            Long orderId = Long.parseLong(orderIdStr);
+
             if ("00".equals(request.getParameter("vnp_ResponseCode"))) {
                 // --- THANH TOÁN THÀNH CÔNG ---
-                String txnRef = request.getParameter("vnp_TxnRef");
-                String orderIdStr = txnRef.split("_")[0]; // Lấy ID đơn hàng
-                Long orderId = Long.parseLong(orderIdStr);
-
-                // Gọi service để xử lý logic nghiệp vụ
                 paymentService.handlePaymentSuccess(orderId, txnRef);
 
-                // Trả về trang thông báo thành công (hoặc redirect về FE)
-                return ResponseEntity.ok("Thanh toán thành công! Đơn hàng: " + orderId);
+                // Redirect về Frontend kèm trạng thái success
+                response.sendRedirect(FRONTEND_URL + "?status=success&orderId=" + orderId);
             } else {
-                return ResponseEntity.badRequest().body("Thanh toán thất bại. Mã lỗi: " + request.getParameter("vnp_ResponseCode"));
+                // --- THANH TOÁN THẤT BẠI ---
+                response.sendRedirect(FRONTEND_URL + "?status=failed&orderId=" + orderId + "&message=" + request.getParameter("vnp_ResponseCode"));
             }
         } else {
-            return ResponseEntity.badRequest().body("Chữ ký không hợp lệ (Checksum failed)");
+            // --- SAI CHỮ KÝ ---
+            response.sendRedirect(FRONTEND_URL + "?status=failed&message=Checksum_failed");
         }
     }
 
-    // Helper để build hash data từ params trả về (giống trong Service)
+    // Helper buildHashData (Giữ nguyên)
     private String buildHashData(Map<String, String> fields) {
-        // Sắp xếp và nối chuỗi để hash (logic giống hệt lúc tạo URL)
-        // ... (Bạn có thể tách logic này vào VnPayConfig để tái sử dụng)
-        // Ở đây mình viết gọn để demo:
         List<String> fieldNames = new java.util.ArrayList<>(fields.keySet());
         java.util.Collections.sort(fieldNames);
         StringBuilder sb = new StringBuilder();

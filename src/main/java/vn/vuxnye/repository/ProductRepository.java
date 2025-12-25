@@ -19,6 +19,12 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
      * - Sử dụng Alias 'c' cho Category để truy vấn chính xác hơn.
      * - Tìm kiếm trong: Tên SP, Tên Danh Mục, hoặc Mô Tả SP.
      */
+
+
+
+
+
+
     @Query(value = "SELECT p.* FROM products p " +
             "LEFT JOIN categories c ON p.category_id = c.id " +
             "WHERE (:keyword IS NULL OR :keyword = '' OR " +
@@ -27,7 +33,6 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
             "       c.name LIKE :keyword) " +
             "AND (:categoryIds IS NULL OR c.id IN (:categoryIds)) " +
             "AND p.is_deleted = :isDeleted",
-
             countQuery = "SELECT count(*) FROM products p " +
                     "LEFT JOIN categories c ON p.category_id = c.id " +
                     "WHERE (:keyword IS NULL OR :keyword = '' OR " +
@@ -42,10 +47,7 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
                                        @Param("isDeleted") boolean isDeleted,
                                        Pageable pageable);
 
-    @Query("SELECT p FROM ProductEntity p " +
-            "LEFT JOIN FETCH p.category " +
-            "LEFT JOIN FETCH p.images " +
-            "WHERE p.id = :id")
+    @Query("SELECT p FROM ProductEntity p LEFT JOIN FETCH p.category LEFT JOIN FETCH p.images WHERE p.id = :id")
     Optional<ProductEntity> findByIdWithDetails(@Param("id") Long id);
 
     List<ProductEntity> findByNameContainingIgnoreCase(String name);
@@ -55,4 +57,8 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
             "LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<ProductEntity> searchEverything(@Param("keyword") String keyword);
+
+    // 🟢 MỚI: Tìm sản phẩm sắp hết hàng (Stock <= limit và chưa bị xóa)
+    @Query("SELECT p FROM ProductEntity p WHERE p.stock <= :limit AND p.isDeleted = false ORDER BY p.stock ASC")
+    List<ProductEntity> findLowStockProducts(@Param("limit") int limit);
 }

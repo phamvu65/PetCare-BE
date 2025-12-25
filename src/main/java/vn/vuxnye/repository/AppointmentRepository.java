@@ -69,4 +69,41 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
             @Param("status") AppointmentStatus status, // <--- Vị trí số 3
             Pageable pageable);
 
+
+    // ... (Các method cũ giữ nguyên)
+
+    // --- THỐNG KÊ DỊCH VỤ ---
+
+    @Query("SELECT COUNT(a) FROM AppointmentEntity a " +
+            "WHERE a.status = :status " +
+            "AND (:startDate IS NULL OR a.scheduledAt >= :startDate) " +
+            "AND (:endDate IS NULL OR a.scheduledAt <= :endDate)")
+    Long countByStatusAndDate(@Param("status") AppointmentStatus status,
+                              @Param("startDate") java.time.LocalDateTime startDate,
+                              @Param("endDate") java.time.LocalDateTime endDate);
+
+    @Query("SELECT COUNT(a) FROM AppointmentEntity a " +
+            "WHERE (:startDate IS NULL OR a.scheduledAt >= :startDate) " +
+            "AND (:endDate IS NULL OR a.scheduledAt <= :endDate)")
+    Long countTotalByDate(@Param("startDate") java.time.LocalDateTime startDate,
+                          @Param("endDate") java.time.LocalDateTime endDate);
+
+    @Query("SELECT SUM(a.service.price) FROM AppointmentEntity a " +
+            "WHERE a.status = :status " +
+            "AND (:startDate IS NULL OR a.scheduledAt >= :startDate) " +
+            "AND (:endDate IS NULL OR a.scheduledAt <= :endDate)")
+    java.math.BigDecimal countRevenue(@Param("status") AppointmentStatus status,
+                                      @Param("startDate") java.time.LocalDateTime startDate,
+                                      @Param("endDate") java.time.LocalDateTime endDate);
+
+    // Lấy danh sách lịch hẹn hoàn thành để vẽ biểu đồ
+    @Query("SELECT a FROM AppointmentEntity a " +
+            "JOIN FETCH a.service " + // Fetch service để lấy giá tiền
+            "WHERE a.status = :status " +
+            "AND (:startDate IS NULL OR a.scheduledAt >= :startDate) " +
+            "AND (:endDate IS NULL OR a.scheduledAt <= :endDate) " +
+            "ORDER BY a.scheduledAt ASC")
+    List<AppointmentEntity> findCompletedAppointmentsBetween(@Param("status") AppointmentStatus status,
+                                                             @Param("startDate") java.time.LocalDateTime startDate,
+                                                             @Param("endDate") java.time.LocalDateTime endDate);
 }

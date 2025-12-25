@@ -9,15 +9,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import vn.vuxnye.common.CouponType;
-import vn.vuxnye.common.ItemType;
-import vn.vuxnye.common.OrderChannel;
-import vn.vuxnye.common.OrderStatus;
+import vn.vuxnye.common.*;
 import vn.vuxnye.dto.request.OrderItemRequest;
 import vn.vuxnye.dto.request.OrderRequest;
 import vn.vuxnye.dto.response.OrderPageResponse;
 import vn.vuxnye.dto.response.OrderResponse;
 import vn.vuxnye.dto.response.OrderStatisticResponse;
+import vn.vuxnye.dto.response.ProductStatsResponse;
 import vn.vuxnye.exception.ResourceNotFoundException;
 import vn.vuxnye.model.*;
 import vn.vuxnye.repository.*;
@@ -28,10 +26,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,14 +41,12 @@ public class OrderServiceImpl implements OrderService {
     private final AddressRepository addressRepository;
     private final CartRepository cartRepository;
     private final CouponRepository couponRepository;
-
-    // 🟢 INJECT REPOSITORY MỚI
     private final OrderCouponRepository orderCouponRepository;
-
     private final CartService cartService;
+    private final AppointmentRepository appointmentRepository;
+    private final OrderDetailRepository orderDetailRepository;
 
-    // --- 1. LOGIC QUẢN LÝ & THỐNG KÊ (ADMIN) ---
-
+    // --- 1. ADMIN: QUẢN LÝ ĐƠN HÀNG ---
     @Override
     @Transactional(readOnly = true)
     public OrderPageResponse getAllOrders(Long userId, OrderStatus status, LocalDate fromDate, LocalDate toDate, int page, int size) {
@@ -81,48 +74,103 @@ public class OrderServiceImpl implements OrderService {
         return response;
     }
 
+    // --- 2. THỐNG KÊ DOANH THU & SẢN PHẨM ---
     @Override
     @Transactional(readOnly = true)
     public OrderStatisticResponse getStatistics(LocalDate fromDate, LocalDate toDate) {
         ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
 
-        Instant start = (fromDate != null) ? fromDate.atStartOfDay(zoneId).toInstant() : null;
-        Instant end = (toDate != null) ? toDate.plusDays(1).atStartOfDay(zoneId).toInstant() : null;
+        Instant startInstant = (fromDate != null) ? fromDate.atStartOfDay(zoneId).toInstant() : null;
+        Instant endInstant = (toDate != null) ? toDate.plusDays(1).atStartOfDay(zoneId).toInstant() : null;
 
-        BigDecimal revenue = orderRepository.countRevenue(OrderStatus.COMPLETED, start, end);
-        if (revenue == null) revenue = BigDecimal.ZERO;
+        LocalDateTime startLocal = (fromDate != null) ? fromDate.atStartOfDay() : null;
+        LocalDateTime endLocal = (toDate != null) ? toDate.plusDays(1).atStartOfDay() : null;
 
-        Long newOrders = orderRepository.countByStatusAndDate(OrderStatus.PENDING, start, end);
-        Long shippingOrders = orderRepository.countByStatusAndDate(OrderStatus.SHIPPING, start, end);
-        Long cancelledOrders = orderRepository.countByStatusAndDate(OrderStatus.CANCELLED, start, end);
-        Long totalOrders = orderRepository.countTotalByDate(start, end);
+        // A. Thống kê Đơn hàng
+        BigDecimal orderRevenue = orderRepository.countRevenue(OrderStatus.COMPLETED, startInstant, endInstant);
+        if (orderRevenue == null) orderRevenue = BigDecimal.ZERO;
 
-        List<OrderEntity> completedOrders = orderRepository.findCompletedOrdersBetween(OrderStatus.COMPLETED, start, end);
+        Long newOrders = orderRepository.countByStatusAndDate(OrderStatus.PENDING, startInstant, endInstant);
+        Long shippingOrders = orderRepository.countByStatusAndDate(OrderStatus.SHIPPING, startInstant, endInstant);
+        Long cancelledOrders = orderRepository.countByStatusAndDate(OrderStatus.CANCELLED, startInstant, endInstant);
+        Long successOrders = orderRepository.countByStatusAndDate(OrderStatus.COMPLETED, startInstant, endInstant);
+        Long totalOrders = orderRepository.countTotalByDate(startInstant, endInstant);
 
-        Map<String, BigDecimal> dailyMap = new LinkedHashMap<>();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM");
+        // B. Thống kê Dịch vụ
+        BigDecimal serviceRevenue = appointmentRepository.countRevenue(AppointmentStatus.DONE, startLocal, endLocal);
+        if (serviceRevenue == null) serviceRevenue = BigDecimal.ZERO;
 
+        Long totalAppointments = appointmentRepository.countTotalByDate(startLocal, endLocal);
+        Long completedAppointments = appointmentRepository.countByStatusAndDate(AppointmentStatus.DONE, startLocal, endLocal);
+        Long cancelledAppointments = appointmentRepository.countByStatusAndDate(AppointmentStatus.CANCELLED, startLocal, endLocal);
+
+        // C. Biểu đồ
+        Map<String, OrderStatisticResponse.DailyRevenue> dailyMap = new LinkedHashMap<>();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd");
+
+        List<OrderEntity> completedOrders = orderRepository.findCompletedOrdersBetween(OrderStatus.COMPLETED, startInstant, endInstant);
         for (OrderEntity order : completedOrders) {
             if (order.getCreatedAt() != null) {
                 String dateKey = order.getCreatedAt().atZone(zoneId).format(formatter);
-                dailyMap.put(dateKey, dailyMap.getOrDefault(dateKey, BigDecimal.ZERO).add(order.getTotalAmount()));
+                dailyMap.putIfAbsent(dateKey, new OrderStatisticResponse.DailyRevenue(dateKey, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
+                OrderStatisticResponse.DailyRevenue entry = dailyMap.get(dateKey);
+                entry.setOrderRevenue(entry.getOrderRevenue().add(order.getTotalAmount()));
+                entry.setTotal(entry.getTotal().add(order.getTotalAmount()));
             }
         }
 
-        List<OrderStatisticResponse.DailyRevenue> chartData = new ArrayList<>();
-        dailyMap.forEach((date, total) -> chartData.add(new OrderStatisticResponse.DailyRevenue(date, total)));
+        List<AppointmentEntity> completedApps = appointmentRepository.findCompletedAppointmentsBetween(AppointmentStatus.DONE, startLocal, endLocal);
+        for (AppointmentEntity appt : completedApps) {
+            if (appt.getScheduledAt() != null) {
+                String dateKey = appt.getScheduledAt().format(formatter);
+                dailyMap.putIfAbsent(dateKey, new OrderStatisticResponse.DailyRevenue(dateKey, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO));
+                OrderStatisticResponse.DailyRevenue entry = dailyMap.get(dateKey);
+
+                BigDecimal price = (appt.getService() != null) ? appt.getService().getPrice() : BigDecimal.ZERO;
+                entry.setServiceRevenue(entry.getServiceRevenue().add(price));
+                entry.setTotal(entry.getTotal().add(price));
+            }
+        }
+
+        List<OrderStatisticResponse.DailyRevenue> chartData = new ArrayList<>(dailyMap.values());
+        chartData.sort(Comparator.comparing(OrderStatisticResponse.DailyRevenue::getDate));
+
+        // D. Top sản phẩm & Tồn kho thấp
+        // D.1 Top 5 Bán chạy
+        List<ProductStatsResponse> topSelling = orderDetailRepository.findTopSellingProducts(
+                OrderStatus.COMPLETED, startInstant, endInstant, PageRequest.of(0, 5)
+        );
+
+        // D.2 Sắp hết hàng (Dưới 10) - 🟢 ĐÃ SỬA: Convert sang DTO để tránh lỗi JSON đệ quy
+        List<ProductEntity> lowStockEntities = productRepository.findLowStockProducts(10);
+        List<OrderStatisticResponse.LowStockDto> lowStockDtos = lowStockEntities.stream()
+                .map(p -> OrderStatisticResponse.LowStockDto.builder()
+                        .id(p.getId())
+                        .name(p.getName())
+                        .stock(p.getStock())
+                        .price(p.getPrice())
+                        .build())
+                .collect(Collectors.toList());
 
         return OrderStatisticResponse.builder()
-                .revenue(revenue)
+                .totalRevenue(orderRevenue.add(serviceRevenue))
+                .totalOrderRevenue(orderRevenue)
                 .newOrders(newOrders)
                 .shippingOrders(shippingOrders)
                 .cancelledOrders(cancelledOrders)
                 .totalOrders(totalOrders)
+                .successOrders(successOrders)
+                .totalServiceRevenue(serviceRevenue)
+                .totalAppointments(totalAppointments)
+                .completedAppointments(completedAppointments)
+                .cancelledAppointments(cancelledAppointments)
                 .chartData(chartData)
+                .topSellingProducts(topSelling)
+                .lowStockProducts(lowStockDtos) // 🟢 Gán list DTO mới
                 .build();
     }
 
-    // --- CÁC HÀM CŨ GIỮ NGUYÊN ---
+    // --- 3. CÁC HÀM XỬ LÝ ORDER KHÁC (GIỮ NGUYÊN) ---
 
     @Override
     public OrderResponse getOrderById(Long id) {
@@ -143,7 +191,6 @@ public class OrderServiceImpl implements OrderService {
         BigDecimal provisionalTotal = BigDecimal.ZERO;
 
         if (request.getItems() != null && !request.getItems().isEmpty()) {
-            // Mua ngay (Buy Now)
             for (OrderItemRequest itemReq : request.getItems()) {
                 OrderDetailEntity detail = createOrderDetail(itemReq.getProductId(), itemReq.getQuantity());
                 orderDetails.add(detail);
@@ -151,7 +198,6 @@ public class OrderServiceImpl implements OrderService {
                 provisionalTotal = provisionalTotal.add(linePrice);
             }
         } else {
-            // Mua từ Giỏ hàng
             CartEntity cart = cartRepository.findByUsername(user.getUsername())
                     .orElseThrow(() -> new ResourceNotFoundException("Cart is empty"));
             if (cart.getItems().isEmpty()) { throw new RuntimeException("Giỏ hàng trống"); }
@@ -171,22 +217,17 @@ public class OrderServiceImpl implements OrderService {
         order.setNote(request.getNote());
         order.setShippingAddress(address.getAddressDetail() + ", " + address.getWard() + ", " + address.getCity());
 
-        // 🟢 XỬ LÝ COUPON (Logic Mới)
         BigDecimal discountAmount = BigDecimal.ZERO;
         CouponEntity appliedCoupon = null;
 
         if (request.getCouponCode() != null && !request.getCouponCode().isBlank()) {
-            // Validate coupon và CHECK LIMIT
             appliedCoupon = validateCoupon(request.getCouponCode(), provisionalTotal);
-
             if (appliedCoupon.getType() == CouponType.percent) {
                 BigDecimal percent = appliedCoupon.getValue().divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
                 discountAmount = provisionalTotal.multiply(percent);
             } else {
                 discountAmount = appliedCoupon.getValue();
             }
-
-            // Không giảm quá giá trị đơn hàng
             if (discountAmount.compareTo(provisionalTotal) > 0) {
                 discountAmount = provisionalTotal;
             }
@@ -196,10 +237,8 @@ public class OrderServiceImpl implements OrderService {
         if (finalTotal.compareTo(BigDecimal.ZERO) < 0) { finalTotal = BigDecimal.ZERO; }
         order.setTotalAmount(finalTotal);
 
-        // Lưu đơn hàng trước
         OrderEntity savedOrder = orderRepository.save(order);
 
-        // Lưu chi tiết đơn hàng & Trừ tồn kho
         for (OrderDetailEntity detail : orderDetails) {
             detail.setOrder(savedOrder);
             ProductEntity product = detail.getProduct();
@@ -209,7 +248,6 @@ public class OrderServiceImpl implements OrderService {
         savedOrder.setOrderDetails(new java.util.HashSet<>(orderDetails));
         orderRepository.save(savedOrder);
 
-        // 🟢 LƯU LỊCH SỬ DÙNG COUPON (Quan trọng để tính limit)
         if (appliedCoupon != null) {
             OrderCouponEntity orderCoupon = new OrderCouponEntity();
             orderCoupon.setOrder(savedOrder);
@@ -218,7 +256,6 @@ public class OrderServiceImpl implements OrderService {
             orderCouponRepository.save(orderCoupon);
         }
 
-        // Xóa giỏ hàng nếu mua từ giỏ
         if (request.getItems() == null || request.getItems().isEmpty()) {
             cartService.clearCart(user.getUsername());
         }
@@ -276,7 +313,6 @@ public class OrderServiceImpl implements OrderService {
         if (current == OrderStatus.CANCELLED || current == OrderStatus.COMPLETED || current == OrderStatus.REFUNDED) {
             throw new RuntimeException("Không thể thay đổi trạng thái đơn hàng đã kết thúc (" + current + ")");
         }
-        // Logic check status transition giữ nguyên...
         switch (next) {
             case PAID: if (current != OrderStatus.PENDING && current != OrderStatus.SHIPPING && current != OrderStatus.DELIVERED) throw new RuntimeException("Lỗi trạng thái"); break;
             case SHIPPING: if (current != OrderStatus.PENDING && current != OrderStatus.PAID) throw new RuntimeException("Lỗi trạng thái"); break;
@@ -301,27 +337,18 @@ public class OrderServiceImpl implements OrderService {
         return detail;
     }
 
-    // 🟢 HÀM VALIDATE COUPON (Đã thêm check số lượng)
     private CouponEntity validateCoupon(String code, BigDecimal orderValue) {
         CouponEntity coupon = couponRepository.findByCode(code).orElseThrow(() -> new RuntimeException("Mã giảm giá không tồn tại"));
-
         if (!coupon.getActive()) throw new RuntimeException("Mã không hợp lệ");
-
-        // Check ngày
         LocalDateTime now = LocalDateTime.now();
         if (now.isBefore(coupon.getStartsAt()) || now.isAfter(coupon.getEndsAt())) {
             throw new RuntimeException("Mã giảm giá chưa diễn ra hoặc đã hết hạn");
         }
-
-        // Check giá trị đơn hàng
         if (orderValue.compareTo(coupon.getMinOrderValue()) < 0) throw new RuntimeException("Đơn hàng chưa đạt giá trị tối thiểu");
-
-        // 🟢 Check số lượng đã dùng
         long usedCount = couponRepository.countUsage(coupon.getId());
         if (usedCount >= coupon.getUsageLimit()) {
             throw new RuntimeException("Mã giảm giá đã hết lượt sử dụng!");
         }
-
         return coupon;
     }
 }

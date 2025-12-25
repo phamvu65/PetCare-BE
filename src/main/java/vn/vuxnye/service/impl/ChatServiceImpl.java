@@ -35,7 +35,7 @@ public class ChatServiceImpl implements ChatService {
     @Value("${gemini.api-key}")
     private String geminiApiKey;
 
-    private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=";
+    private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=";
     // System Prompt dạy AI trả về JSON
     private static final String SYSTEM_INSTRUCTION = """
             Bạn là trợ lý ảo Pet Care.

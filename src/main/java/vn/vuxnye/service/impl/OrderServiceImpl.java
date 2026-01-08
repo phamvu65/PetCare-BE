@@ -6,16 +6,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.JpaSort;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.vuxnye.common.*;
 import vn.vuxnye.dto.request.OrderItemRequest;
 import vn.vuxnye.dto.request.OrderRequest;
-import vn.vuxnye.dto.response.OrderPageResponse;
-import vn.vuxnye.dto.response.OrderResponse;
-import vn.vuxnye.dto.response.OrderStatisticResponse;
-import vn.vuxnye.dto.response.ProductStatsResponse;
+import vn.vuxnye.dto.response.*; // Import * để lấy các DTO mới
 import vn.vuxnye.exception.ResourceNotFoundException;
 import vn.vuxnye.model.*;
 import vn.vuxnye.repository.*;
@@ -74,7 +72,7 @@ public class OrderServiceImpl implements OrderService {
         return response;
     }
 
-    // --- 2. THỐNG KÊ DOANH THU & SẢN PHẨM ---
+    // --- 2. THỐNG KÊ DASHBOARD (TOP 5 + DOANH THU) ---
     @Override
     @Transactional(readOnly = true)
     public OrderStatisticResponse getStatistics(LocalDate fromDate, LocalDate toDate) {
@@ -135,13 +133,11 @@ public class OrderServiceImpl implements OrderService {
         List<OrderStatisticResponse.DailyRevenue> chartData = new ArrayList<>(dailyMap.values());
         chartData.sort(Comparator.comparing(OrderStatisticResponse.DailyRevenue::getDate));
 
-        // D. Top sản phẩm & Tồn kho thấp
-        // D.1 Top 5 Bán chạy
+        // D. Top sản phẩm & Tồn kho thấp (Cho Dashboard)
         List<ProductStatsResponse> topSelling = orderDetailRepository.findTopSellingProducts(
                 OrderStatus.COMPLETED, startInstant, endInstant, PageRequest.of(0, 5)
         );
 
-        // D.2 Sắp hết hàng (Dưới 10) - 🟢 ĐÃ SỬA: Convert sang DTO để tránh lỗi JSON đệ quy
         List<ProductEntity> lowStockEntities = productRepository.findLowStockProducts(10);
         List<OrderStatisticResponse.LowStockDto> lowStockDtos = lowStockEntities.stream()
                 .map(p -> OrderStatisticResponse.LowStockDto.builder()
@@ -152,6 +148,20 @@ public class OrderServiceImpl implements OrderService {
                         .build())
                 .collect(Collectors.toList());
 
+        // ==========================================================
+        // 🟢 E. [MỚI] TOP DỊCH VỤ & TOP NHÂN VIÊN
+        // ==========================================================
+        List<ServiceStatsResponse> topServices = appointmentRepository.findTopServices(
+                AppointmentStatus.DONE, startLocal, endLocal, PageRequest.of(0, 5)
+        );
+
+        List<EmployeeStatsResponse> topEmployees = appointmentRepository.findTopEmployees(
+                AppointmentStatus.DONE, startLocal, endLocal, PageRequest.of(0, 5)
+        );
+
+        // ==========================================================
+        // BUILD RESPONSE
+        // ==========================================================
         return OrderStatisticResponse.builder()
                 .totalRevenue(orderRevenue.add(serviceRevenue))
                 .totalOrderRevenue(orderRevenue)
@@ -166,11 +176,41 @@ public class OrderServiceImpl implements OrderService {
                 .cancelledAppointments(cancelledAppointments)
                 .chartData(chartData)
                 .topSellingProducts(topSelling)
-                .lowStockProducts(lowStockDtos) // 🟢 Gán list DTO mới
+                .lowStockProducts(lowStockDtos)
+                // --- Set 2 trường mới vào ---
+                .topServices(topServices)
+                .topEmployees(topEmployees)
                 .build();
     }
 
-    // --- 3. CÁC HÀM XỬ LÝ ORDER KHÁC (GIỮ NGUYÊN) ---
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ProductStatsResponse> getProductSalesStats(LocalDate fromDate, LocalDate toDate, int page, int size, String sortField, String sortDir) {
+        ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
+        Instant start = (fromDate != null) ? fromDate.atStartOfDay(zoneId).toInstant() : null;
+        Instant end = (toDate != null) ? toDate.plusDays(1).atStartOfDay(zoneId).toInstant() : null;
+
+        Sort sort;
+        Sort.Direction direction = sortDir.equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
+
+        if ("revenue".equalsIgnoreCase(sortField)) {
+            sort = JpaSort.unsafe(direction, "SUM(CASE WHEN o.status = vn.vuxnye.common.OrderStatus.COMPLETED THEN (od.qty * od.unitPrice) ELSE 0 END)");
+        } else if ("totalSold".equalsIgnoreCase(sortField)) {
+            sort = JpaSort.unsafe(direction, "SUM(CASE WHEN o.status = vn.vuxnye.common.OrderStatus.COMPLETED THEN od.qty ELSE 0 END)");
+        } else if ("name".equalsIgnoreCase(sortField)) {
+            sort = Sort.by(direction, "p.name");
+        } else if ("stock".equalsIgnoreCase(sortField)) {
+            sort = Sort.by(direction, "p.stock");
+        } else {
+            sort = Sort.by(direction, "p.id");
+        }
+
+        Pageable pageable = PageRequest.of(page > 0 ? page - 1 : 0, size, sort);
+
+        return productRepository.getAllProductSalesStats(
+                OrderStatus.COMPLETED, start, end, pageable
+        );
+    }
 
     @Override
     public OrderResponse getOrderById(Long id) {

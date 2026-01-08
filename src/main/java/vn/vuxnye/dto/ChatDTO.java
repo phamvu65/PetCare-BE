@@ -24,4 +24,5 @@ public class ChatDTO {
 
     // Dùng cho Response (Output từ AI)
     private String reply;
+
 }

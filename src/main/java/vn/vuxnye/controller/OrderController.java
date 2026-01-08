@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page; // ✅ Import Page
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,6 +17,7 @@ import vn.vuxnye.dto.request.OrderRequest;
 import vn.vuxnye.dto.response.OrderPageResponse;
 import vn.vuxnye.dto.response.OrderResponse;
 import vn.vuxnye.dto.response.OrderStatisticResponse;
+import vn.vuxnye.dto.response.ProductStatsResponse; // ✅ Import DTO Mới
 import vn.vuxnye.service.OrderService;
 
 import java.time.LocalDate;
@@ -33,8 +35,8 @@ public class OrderController {
     private final OrderService orderService;
 
     /**
-     * 1. ADMIN DASHBOARD: Lấy số liệu thống kê
-     * (Bao gồm: Doanh thu, Đơn hàng, Dịch vụ, Top sản phẩm bán chạy, Tồn kho thấp)
+     * 1. ADMIN DASHBOARD: Lấy số liệu thống kê tổng quan
+     * (Bao gồm: Doanh thu, Đơn hàng, Dịch vụ, Top 5 sản phẩm, Tồn kho thấp)
      */
     @GetMapping("/stats")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
@@ -48,7 +50,26 @@ public class OrderController {
     }
 
     /**
-     * 2. ADMIN/STAFF: Lấy danh sách đơn hàng (Có lọc theo status, ngày, user)
+     * 🟢 2. ADMIN ANALYTICS: Lấy chi tiết thống kê sản phẩm (Trang ProductSales)
+     * Hỗ trợ phân trang, sắp xếp theo doanh thu hoặc số lượng bán
+     */
+    @GetMapping("/product-stats")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @Operation(summary = "Get detailed product sales statistics")
+    public Map<String, Object> getProductSalesStats(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "totalSold") String sortBy, // 'totalSold', 'revenue', 'name'
+            @RequestParam(defaultValue = "desc") String sortDir      // 'asc', 'desc'
+    ) {
+        Page<ProductStatsResponse> stats = orderService.getProductSalesStats(fromDate, toDate, page, size, sortBy, sortDir);
+        return createResponse(HttpStatus.OK, "Get product stats success", stats);
+    }
+
+    /**
+     * 3. ADMIN/STAFF: Lấy danh sách đơn hàng (Quản lý đơn hàng)
      */
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
@@ -66,7 +87,7 @@ public class OrderController {
     }
 
     /**
-     * 3. ADMIN/STAFF/USER: Xem chi tiết một đơn hàng cụ thể
+     * 4. Xem chi tiết một đơn hàng cụ thể
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF') or @securityService.isOrderOwner(#id, principal)")
@@ -76,7 +97,7 @@ public class OrderController {
         return createResponse(HttpStatus.OK, "Get order detail success", response);
     }
 
-    // --- CÁC API XỬ LÝ ĐƠN HÀNG (GIỮ NGUYÊN) ---
+    // --- CÁC API XỬ LÝ ĐƠN HÀNG (USER/CLIENT) ---
 
     @PostMapping
     @PreAuthorize("hasRole('CUSTOMER')")

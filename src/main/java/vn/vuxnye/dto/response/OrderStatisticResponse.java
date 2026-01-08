@@ -34,6 +34,9 @@ public class OrderStatisticResponse {
     private List<DailyRevenue> chartData;
     private List<ProductStatsResponse> topSellingProducts; // Top 5 bán chạy
     private List<LowStockDto> lowStockProducts;          // Sản phẩm sắp hết
+
+    private List<ServiceStatsResponse> topServices;
+    private List<EmployeeStatsResponse> topEmployees;
     @Getter
     @Setter
     @AllArgsConstructor

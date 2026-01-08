@@ -7,18 +7,17 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import vn.vuxnye.common.AppointmentStatus;
+import vn.vuxnye.dto.response.EmployeeStatsResponse;
+import vn.vuxnye.dto.response.ServiceStatsResponse;
 import vn.vuxnye.model.AppointmentEntity;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface AppointmentRepository extends JpaRepository<AppointmentEntity, Long> {
 
-    /**
-     * Lấy tất cả lịch hẹn (phân trang)
-     * Viết full query để tránh lỗi cú pháp nối chuỗi
-     */
     @Override
     @Query(value = "SELECT a FROM AppointmentEntity a " +
             "JOIN FETCH a.customer " +
@@ -28,9 +27,6 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
             countQuery = "SELECT COUNT(a) FROM AppointmentEntity a")
     Page<AppointmentEntity> findAll(Pageable pageable);
 
-    /**
-     * Lấy chi tiết 1 lịch hẹn theo ID (có nạp đủ thông tin liên quan)
-     */
     @Query("SELECT a FROM AppointmentEntity a " +
             "JOIN FETCH a.customer " +
             "JOIN FETCH a.pet " +
@@ -39,9 +35,6 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
             "WHERE a.id = :id")
     Optional<AppointmentEntity> findByIdWithDetails(@Param("id") Long id);
 
-    /**
-     * Lấy lịch hẹn của một khách hàng (theo username)
-     */
     @Query("SELECT a FROM AppointmentEntity a " +
             "JOIN FETCH a.customer " +
             "JOIN FETCH a.pet " +
@@ -65,45 +58,103 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
             "(:status IS NULL OR a.status = :status)")
     Page<AppointmentEntity> findAllByFilter(
             @Param("customerId") Long customerId,
-            @Param("staffId") Long staffId,            // <--- Vị trí số 2
-            @Param("status") AppointmentStatus status, // <--- Vị trí số 3
+            @Param("staffId") Long staffId,
+            @Param("status") AppointmentStatus status,
             Pageable pageable);
 
-
-    // ... (Các method cũ giữ nguyên)
-
-    // --- THỐNG KÊ DỊCH VỤ ---
+    // --- CÁC HÀM THỐNG KÊ CŨ (Dùng cho Dashboard tổng quan) ---
 
     @Query("SELECT COUNT(a) FROM AppointmentEntity a " +
             "WHERE a.status = :status " +
             "AND (:startDate IS NULL OR a.scheduledAt >= :startDate) " +
             "AND (:endDate IS NULL OR a.scheduledAt <= :endDate)")
     Long countByStatusAndDate(@Param("status") AppointmentStatus status,
-                              @Param("startDate") java.time.LocalDateTime startDate,
-                              @Param("endDate") java.time.LocalDateTime endDate);
+                              @Param("startDate") LocalDateTime startDate,
+                              @Param("endDate") LocalDateTime endDate);
 
     @Query("SELECT COUNT(a) FROM AppointmentEntity a " +
             "WHERE (:startDate IS NULL OR a.scheduledAt >= :startDate) " +
             "AND (:endDate IS NULL OR a.scheduledAt <= :endDate)")
-    Long countTotalByDate(@Param("startDate") java.time.LocalDateTime startDate,
-                          @Param("endDate") java.time.LocalDateTime endDate);
+    Long countTotalByDate(@Param("startDate") LocalDateTime startDate,
+                          @Param("endDate") LocalDateTime endDate);
 
     @Query("SELECT SUM(a.service.price) FROM AppointmentEntity a " +
             "WHERE a.status = :status " +
             "AND (:startDate IS NULL OR a.scheduledAt >= :startDate) " +
             "AND (:endDate IS NULL OR a.scheduledAt <= :endDate)")
     java.math.BigDecimal countRevenue(@Param("status") AppointmentStatus status,
-                                      @Param("startDate") java.time.LocalDateTime startDate,
-                                      @Param("endDate") java.time.LocalDateTime endDate);
+                                      @Param("startDate") LocalDateTime startDate,
+                                      @Param("endDate") LocalDateTime endDate);
 
-    // Lấy danh sách lịch hẹn hoàn thành để vẽ biểu đồ
     @Query("SELECT a FROM AppointmentEntity a " +
-            "JOIN FETCH a.service " + // Fetch service để lấy giá tiền
+            "JOIN FETCH a.service " +
             "WHERE a.status = :status " +
             "AND (:startDate IS NULL OR a.scheduledAt >= :startDate) " +
             "AND (:endDate IS NULL OR a.scheduledAt <= :endDate) " +
             "ORDER BY a.scheduledAt ASC")
     List<AppointmentEntity> findCompletedAppointmentsBetween(@Param("status") AppointmentStatus status,
-                                                             @Param("startDate") java.time.LocalDateTime startDate,
-                                                             @Param("endDate") java.time.LocalDateTime endDate);
+                                                             @Param("startDate") LocalDateTime startDate,
+                                                             @Param("endDate") LocalDateTime endDate);
+
+    // ==========================================================
+    // 🟢 CÁC HÀM THỐNG KÊ MỚI (Dùng cho trang chi tiết)
+    // ==========================================================
+
+    // 1. Top Dịch vụ (Trả về List - Dùng cho Dashboard nhỏ)
+    @Query("SELECT new vn.vuxnye.dto.response.ServiceStatsResponse(s.id, s.name, COUNT(a), SUM(s.price)) " +
+            "FROM AppointmentEntity a " +
+            "JOIN a.service s " +
+            "WHERE a.status = :status " +
+            "AND (:startDate IS NULL OR a.scheduledAt >= :startDate) " +
+            "AND (:endDate IS NULL OR a.scheduledAt <= :endDate) " +
+            "GROUP BY s.id, s.name " +
+            "ORDER BY SUM(s.price) DESC")
+    List<ServiceStatsResponse> findTopServices(@Param("status") AppointmentStatus status,
+                                               @Param("startDate") LocalDateTime startDate,
+                                               @Param("endDate") LocalDateTime endDate,
+                                               Pageable pageable);
+
+    // 2. Top Nhân viên (Trả về List - Dùng cho Dashboard nhỏ)
+    @Query("SELECT new vn.vuxnye.dto.response.EmployeeStatsResponse(u.id, CONCAT(u.lastName, ' ', u.firstName), COUNT(a), SUM(s.price)) " +
+            "FROM AppointmentEntity a " +
+            "JOIN a.staff u " +
+            "JOIN a.service s " +
+            "WHERE a.status = :status " +
+            "AND (:startDate IS NULL OR a.scheduledAt >= :startDate) " +
+            "AND (:endDate IS NULL OR a.scheduledAt <= :endDate) " +
+            "GROUP BY u.id, u.lastName, u.firstName " +
+            "ORDER BY SUM(s.price) DESC")
+    List<EmployeeStatsResponse> findTopEmployees(@Param("status") AppointmentStatus status,
+                                                 @Param("startDate") LocalDateTime startDate,
+                                                 @Param("endDate") LocalDateTime endDate,
+                                                 Pageable pageable);
+
+    // 3. Thống kê Dịch vụ (Trả về Page - Dùng cho trang chi tiết có phân trang)
+    @Query("SELECT new vn.vuxnye.dto.response.ServiceStatsResponse(s.id, s.name, COUNT(a), SUM(s.price)) " +
+            "FROM AppointmentEntity a " +
+            "JOIN a.service s " +
+            "WHERE a.status = :status " +
+            "AND (:startDate IS NULL OR a.scheduledAt >= :startDate) " +
+            "AND (:endDate IS NULL OR a.scheduledAt <= :endDate) " +
+            "GROUP BY s.id, s.name")
+    Page<ServiceStatsResponse> getServiceStatsPage(
+            @Param("status") AppointmentStatus status,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            Pageable pageable);
+
+    // 4. Thống kê Nhân viên (Trả về Page - Dùng cho trang chi tiết có phân trang) 🟢 MỚI THÊM
+    @Query("SELECT new vn.vuxnye.dto.response.EmployeeStatsResponse(u.id, CONCAT(u.lastName, ' ', u.firstName), COUNT(a), SUM(s.price)) " +
+            "FROM AppointmentEntity a " +
+            "JOIN a.staff u " +
+            "JOIN a.service s " +
+            "WHERE a.status = :status " +
+            "AND (:startDate IS NULL OR a.scheduledAt >= :startDate) " +
+            "AND (:endDate IS NULL OR a.scheduledAt <= :endDate) " +
+            "GROUP BY u.id, u.lastName, u.firstName")
+    Page<EmployeeStatsResponse> getEmployeeStatsPage(
+            @Param("status") AppointmentStatus status,
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            Pageable pageable);
 }

@@ -11,6 +11,9 @@ import java.math.BigDecimal;
 public class ProductStatsResponse {
     private Long id;
     private String name;
+    private String categoryName;     // 🟢 MỚI: Tên danh mục
     private BigDecimal price;
-    private Long totalSold; // Tổng số lượng đã bán
+    private Long totalSold;
+    private BigDecimal totalRevenue; // 🟢 MỚI: Tổng doanh thu
+    private Integer stock;
 }

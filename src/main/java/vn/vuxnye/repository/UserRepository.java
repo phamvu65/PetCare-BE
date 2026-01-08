@@ -14,10 +14,10 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<UserEntity,Long> {
 
-    // 🟢 SỬA: Thêm JOIN với bảng roles và điều kiện lọc r.id
+    // API Search cũ của bạn (Giữ nguyên)
     @Query("SELECT u FROM UserEntity u " +
-            "JOIN u.roles r " + // Join bảng roles
-            "WHERE (:roleId IS NULL OR r.id = :roleId) " + // Lọc theo Role ID
+            "JOIN u.roles r " +
+            "WHERE (:roleId IS NULL OR r.id = :roleId) " +
             "AND (:status IS NULL OR u.status = :status) " +
             "AND (:keyword IS NULL OR " +
             "   lower(u.firstName) like :keyword OR " +
@@ -27,14 +27,21 @@ public interface UserRepository extends JpaRepository<UserEntity,Long> {
             "   lower(u.email) like :keyword" +
             ")")
     Page<UserEntity> searchByRoleStatusAndKeyword(
-            @Param("roleId") Long roleId, // Thêm tham số này
+            @Param("roleId") Long roleId,
             @Param("status") UserStatus status,
             @Param("keyword") String keyword,
             Pageable pageable
     );
 
+    // Tìm user bằng email (Dùng cho quên mật khẩu - Giữ nguyên)
     UserEntity findByEmail(String email);
 
+    // Tìm user bằng username (Giữ nguyên nếu có chỗ khác dùng)
     @Query("SELECT u FROM UserEntity u JOIN FETCH u.roles WHERE u.username = :username")
     Optional<UserEntity> findByUsername(String username);
+
+    // 🟢 [MỚI] TÌM BẰNG USERNAME HOẶC EMAIL (Dùng cho Đăng nhập)
+    // Spring Data JPA sẽ tự hiểu: (username = ?1 OR email = ?2)
+    @Query("SELECT u FROM UserEntity u JOIN FETCH u.roles WHERE u.username = :username OR u.email = :email")
+    Optional<UserEntity> findByUsernameOrEmail(@Param("username") String username, @Param("email") String email);
 }

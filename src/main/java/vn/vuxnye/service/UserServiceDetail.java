@@ -1,15 +1,16 @@
 package vn.vuxnye.service;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import vn.vuxnye.exception.ResourceNotFoundException;
 import vn.vuxnye.repository.UserRepository;
 
 @Service
 public record UserServiceDetail(UserRepository userRepository) {
 
+    // Giữ nguyên tên hàm này để các chỗ khác gọi không bị lỗi
     public UserDetailsService UserServiceDetail() {
-        return username -> userRepository.findByUsername(username).orElseThrow(()-> new ResourceNotFoundException("User not found: " + username));
+        return username -> userRepository.findByUsernameOrEmail(username, username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
     }
 }

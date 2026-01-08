@@ -149,6 +149,12 @@
 			<artifactId>logstash-logback-encoder</artifactId>
 			<version>6.6</version>
 		</dependency>
+
+<!--		quen mat khau-->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
 	</dependencies>
 
 

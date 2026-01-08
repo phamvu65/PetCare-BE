@@ -38,7 +38,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public TokenResponse getAccessToken(SignInRequest request) {
         log.info("Get access token");
 
-        // Check db ktra user detail co hop le
+        // 1. Xác thực (AuthenticationManager đã gọi UserServiceDetail để check username/email rồi)
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -53,27 +53,30 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new AccessDeniedException(e.getMessage());
         }
 
-        // Lấy user từ DB
-        var user = userRepository.findByUsername(request.getUsername())
+        // 2. Lấy thông tin User từ DB
+        // 🔴 ĐÃ SỬA: Tìm bằng cả Username HOẶC Email để tránh lỗi "User not found"
+        var user = userRepository.findByUsernameOrEmail(request.getUsername(), request.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        // Tạo token
+        // 3. Tạo token
+        // 🟢 LƯU Ý: Dùng user.getUsername() (tên chuẩn trong DB) thay vì request.getUsername() (input người dùng nhập)
+        // Để token luôn chứa username chuẩn, dù họ đăng nhập bằng email.
         String accessToken = jwtService.generateAccessToken(
                 user.getId(),
-                request.getUsername(),
+                user.getUsername(),
                 user.getAuthorities()
         );
 
         String refreshToken = jwtService.generateRefreshToken(
                 user.getId(),
-                request.getUsername(),
+                user.getUsername(),
                 user.getAuthorities()
         );
 
-        // Lưu token vào DB
+        // 4. Lưu token vào DB
         tokenService.save(
                 TokenEntity.builder()
-                        .username(request.getUsername())
+                        .username(user.getUsername()) // Lưu username chuẩn
                         .accessToken(accessToken)
                         .refreshToken(refreshToken)
                         .platform(request.getPlatform())
@@ -82,13 +85,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                         .build()
         );
 
-        // ⚡⚡⚡ TRẢ VỀ THÔNG TIN USER TẠI ĐÂY
+        // 5. Trả về kết quả
         return TokenResponse.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
-                .userId(user.getId())         // thêm
-                .username(user.getUsername()) // thêm
-                .email(user.getEmail())       // thêm
+                .userId(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
                 .build();
     }
 
@@ -109,6 +112,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new AccessDeniedException("Invalid or expired refresh token", e);
         }
 
+        // Refresh token thì tìm bằng username là đúng, vì token đã chứa username chuẩn
         var user = userRepository.findByUsername(username).orElseThrow(() -> new ResourceNotFoundException("User not found"));;
         if (user == null) {
             log.warn("User not found for refresh token (username: {})", username);
@@ -123,15 +127,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         );
 
         TokenEntity existingToken = tokenRepository.findByRefreshToken(refreshToken).orElseThrow();
-         existingToken.setAccessToken(newAccessToken);
-         tokenService.save(existingToken);
+        existingToken.setAccessToken(newAccessToken);
+        tokenService.save(existingToken);
 
 
         return TokenResponse.builder()
                 .accessToken(newAccessToken)
                 .refreshToken(refreshToken)
                 .build();
-
     }
-
 }

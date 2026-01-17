@@ -31,7 +31,6 @@ public class PaymentController {
     private final PaymentService paymentService;
     private final VnPayConfig vnPayConfig;
 
-    // Cấu hình URL frontend (Nên đưa vào file properties)
     private static final String FRONTEND_URL = "http://localhost:5173/payment-result";
 
     @PostMapping("/create")

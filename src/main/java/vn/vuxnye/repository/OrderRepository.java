@@ -19,20 +19,18 @@ public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
 
     List<OrderEntity> findByCustomerUsernameOrderByCreatedAtDesc(String username);
 
-    // 🟢 ĐÃ CẬP NHẬT: Thêm logic lọc theo userId
     @Query("SELECT o FROM OrderEntity o WHERE " +
-            "(:userId IS NULL OR o.customer.id = :userId) AND " + // 👈 Thêm dòng này để lọc theo User
+            "(:userId IS NULL OR o.customer.id = :userId) AND " +
             "(:status IS NULL OR o.status = :status) AND " +
             "(:startDate IS NULL OR o.createdAt >= :startDate) AND " +
             "(:endDate IS NULL OR o.createdAt <= :endDate)")
     Page<OrderEntity> findOrdersByFilter(
-            @Param("userId") Long userId,          // 👈 Thêm tham số userId
+            @Param("userId") Long userId,
             @Param("status") OrderStatus status,
             @Param("startDate") Instant startDate,
             @Param("endDate") Instant endDate,
             Pageable pageable);
 
-    // --- Các hàm thống kê giữ nguyên ---
 
     @Query("SELECT SUM(o.totalAmount) FROM OrderEntity o " +
             "WHERE o.status = :status " +
@@ -56,7 +54,6 @@ public interface OrderRepository extends JpaRepository<OrderEntity, Long> {
     Long countTotalByDate(@Param("startDate") Instant startDate,
                           @Param("endDate") Instant endDate);
 
-    // --- Các hàm khác ---
 
     @Query("SELECT o FROM OrderEntity o " +
             "LEFT JOIN FETCH o.orderDetails od " +

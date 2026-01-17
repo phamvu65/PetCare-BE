@@ -7,7 +7,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/pet_care?useUnicode=true&characterEncoding=UTF-8&useSSL=false&connectionCollation=utf8mb4_unicode_ci
     username: root
-    password:
+    password: 1234
     hikari: # Connection poll
       max-lifetime: 300000      # 5 phút
       idle-timeout: 60000       # 1 phút
@@ -58,8 +58,8 @@ jwt:
   refreshKey: 6a47ad4b888173a219982ce0cfb91098a360611d4055da9988b8a1451804c261
 
 vnpay:
-  tmn-code: V6UR8GOQ
-  hash-secret: LFR20QWKW2S5S1DO1NF9RSHL5H9VEAO6
+  tmn-code: RAAKHD78
+  hash-secret: AULJ2N73D6FPR611HD2CFT64VA2H3V00
   url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
   return-url: http://localhost:8080/payments/vnpay-return
 

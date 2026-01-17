@@ -33,7 +33,7 @@ public class FileUploadController {
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("status", HttpStatus.OK.value());
             result.put("message", "Upload success");
-            result.put("url", imageUrl); // Trả về URL để FE dùng
+            result.put("url", imageUrl);
 
             return ResponseEntity.ok(result);
         } catch (IOException e) {

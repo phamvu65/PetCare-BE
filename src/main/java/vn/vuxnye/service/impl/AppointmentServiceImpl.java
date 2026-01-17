@@ -44,8 +44,11 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Transactional(readOnly = true)
     public AppointmentPageResponse findAll(int page, int size, AppointmentStatus status, Long customerId, Long staffId) {
         log.info("Find appointments. Status: {}, Customer: {}, Staff: {}", status, customerId, staffId);
+
         Pageable pageable = PageRequest.of(page > 0 ? page - 1 : 0, size, Sort.by("scheduledAt").descending());
+
         Page<AppointmentEntity> pageResult = appointmentRepository.findAllByFilter(customerId, staffId, status, pageable);
+
         List<AppointmentResponse> list = pageResult.stream().map(AppointmentResponse::fromEntity).toList();
         AppointmentPageResponse response = new AppointmentPageResponse();
         response.setAppointments(list);

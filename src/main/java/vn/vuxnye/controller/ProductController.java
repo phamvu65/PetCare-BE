@@ -41,7 +41,7 @@ public class ProductController {
             @RequestParam(required = false, defaultValue = "false") Boolean isDeleted
     ) {
         // Truyền isDeleted xuống Service
-        ProductPageResponse response = productService.findAll(keyword, sort, page, size, categoryIds, isDeleted);
+            ProductPageResponse response = productService.findAll(keyword, sort, page, size, categoryIds, isDeleted);
         return createResponse(HttpStatus.OK, "Get products success", response);
     }
 

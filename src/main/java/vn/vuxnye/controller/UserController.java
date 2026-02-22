@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import vn.vuxnye.common.ResponseAPI;
 import vn.vuxnye.common.UserStatus;
 import vn.vuxnye.dto.request.UserCreationRequest;
 import vn.vuxnye.dto.request.UserPasswordRequest;
@@ -31,29 +32,27 @@ public class UserController {
 
     private final UserService userService;
 
-    @Operation(summary = "Get user list", description = "API retrieve user from db with filters")
+    @Operation(summary = "Get all users", description = "API retrieve all users from db")
+
+
     @GetMapping("/list")
-    public Map<String,Object> getList(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) UserStatus status,
-            @RequestParam(required = false) Long roleId, // 🟢 THÊM: Lọc theo Role ID
+    public ResponseAPI getList(
+            @RequestParam(required = false) String keyword ,
+            @RequestParam(required = false) UserStatus status ,
+            @RequestParam(required = false) Long roleId,
             @RequestParam(required = false) String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
 
-        log.info("get user list. Role: {}, Status: {}", roleId, status);
+        log.info("get user list. Sort: {}, Page: {}, Size: {}", sort, page, size);
+        UserPageResponse pageResponse = userService.findAll(keyword,roleId,status,sort,page,size);
 
-        UserPageResponse pageResponse = userService.findAll(keyword, roleId, status, sort, page, size);
-
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("status", HttpStatus.OK.value());
-        result.put("message", "user List");
-        result.put("data", pageResponse);
-
-        return result;
+        return ResponseAPI.builder()
+                .data(pageResponse)
+                .status(HttpStatus.OK)
+                .message("Get user list successfully")
+                .build();
     }
-
-    // ... Các API khác giữ nguyên (add, upd, del, restore) ...
     @Operation(summary = "Create User",description = "API add new user to db")
     @PostMapping("/add")
     public ResponseEntity<Object> createUser(@RequestBody @Valid UserCreationRequest request) {
@@ -64,60 +63,60 @@ public class UserController {
         return new ResponseEntity<>(result, HttpStatus.CREATED);
     }
 
+
     @Operation(summary = "Update User",description = "API update user to db")
     @PutMapping("/upd")
-    public Map<String, Object> updateUser(@RequestBody @Valid UserUpdateRequest request) {
+    public ResponseAPI updateUser(@RequestBody @Valid UserUpdateRequest request) {
         userService.update(request);
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("status", HttpStatus.ACCEPTED.value());
-        result.put("message", "User updated successfully");
-        result.put("data","");
-        return result;
+
+        return ResponseAPI.builder()
+                .status(HttpStatus.ACCEPTED)
+                .data("")
+                .message("User updated successfully")
+                .build();
     }
 
     @DeleteMapping("/del/{userId}")
-    public Map<String, Object> deleteUser(@PathVariable Long userId) {
+    public ResponseAPI deleteUser(@PathVariable Long userId ) {
         userService.delete(userId);
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("status", HttpStatus.ACCEPTED.value());
-        result.put("message", "User locked successfully");
-        result.put("data","");
-        return result;
+
+        return ResponseAPI.builder()
+                .status(HttpStatus.NO_CONTENT)
+                .data("")
+                .message("User deleted successfully")
+                .build();
     }
 
     @PatchMapping("/restore/{userId}")
-    public Map<String, Object> restoreUser(@PathVariable Long userId) {
-        userService.restore(userId);
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("status", HttpStatus.OK.value());
-        result.put("message", "User restored successfully");
-        result.put("data", "");
-        return result;
-    }
+    public ResponseAPI restoreUser(@PathVariable Long userId) {
+        userService.restore(userId) ;
 
-    @Operation(summary = "Get user detail", description = "API retrieve user detail by id")
+        return ResponseAPI.builder()
+                .status(HttpStatus.OK)
+                .data("")
+                .message("User restored successfully")
+                .build();
+    }
+    @Operation(summary = "Get user detail ", description = "API retrieve user detail by id")
     @GetMapping("/{userId}")
-    public Map<String, Object> getUserDetail(@PathVariable @Min(value = 1, message = "UserId must be equals or greater than 1") Long userId) {
-        log.info("get user detail:{}", userId);
-
-        // Gọi service lấy thông tin
+    public ResponseAPI getUserDetail(@PathVariable @Min(value = 1, message = "UserId must be equals or greater than 1") Long userId) {
+        log.info(" get user detail:{} ", userId);
         UserResponse userDetail = userService.findById(userId);
+        return ResponseAPI.builder()
+                .message("Get user detail successfully")
+                .data(userDetail)
+                .status(HttpStatus.OK)
+                .build();
+     }
 
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("status", HttpStatus.OK.value());
-        result.put("message", "User details retrieved successfully");
-        result.put("data", userDetail);
-        return result;
-    }
-    @Operation(summary = "Change Password", description = "API change password for user to db")
-    @PatchMapping("/change-pwd") // 🟢 BẮT BUỘC PHẢI LÀ @PatchMapping (vì Frontend gọi api.patch)
-    public Map<String, Object> changePassword(@RequestBody @Valid UserPasswordRequest request) {
-        log.info("change password:{}", request);
+    @Operation(summary = "Change Password", description = "API change password for user")
+    @PatchMapping("/change-pwd")
+    public ResponseAPI changePassword(@RequestBody @Valid UserPasswordRequest request) {
+        log.info("change password: {}", request);
         userService.changePassword(request);
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("status", HttpStatus.OK.value()); // Hoặc HttpStatus.NO_CONTENT.value()
-        result.put("message", "Password updated successfully");
-        result.put("data", "");
-        return result;
+        return ResponseAPI.builder()
+                .message("Change password successfully")
+                .data("")
+                .build();
     }
 }

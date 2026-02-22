@@ -6,7 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.security.core.context.SecurityContextHolder; // 🟢 QUAN TRỌNG: Cần import cái này
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -131,7 +131,6 @@ public class UserServiceImpl implements UserService {
             throw new InvalidDataException("Email already exists");
         }
 
-        // Logic Role mặc định
         Long roleIdToUse = req.getRoleId();
         if (roleIdToUse == null || roleIdToUse <= 0) {
             roleIdToUse = 1L;
@@ -202,31 +201,25 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 
-    // 🟢 ĐÂY LÀ ĐOẠN CODE BỊ THIẾU LOGIC TRƯỚC ĐÓ
     @Override
     public void changePassword(UserPasswordRequest req) {
         log.info("Processing change password request");
 
-        // 1. Lấy username của người dùng đang đăng nhập
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        // 2. Tìm user trong DB
         UserEntity user = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + currentUsername));
 
-        // 3. Kiểm tra mật khẩu cũ có đúng không
         if (!passwordEncoder.matches(req.getOldPassword(), user.getPassword())) {
             throw new InvalidDataException("Mật khẩu cũ không chính xác");
         }
 
-        // 4. Kiểm tra mật khẩu mới và xác nhận có khớp không (nếu FE chưa check)
         if (!req.getPassword().equals(req.getConfirmPassword())) {
             throw new InvalidDataException("Mật khẩu xác nhận không khớp");
         }
 
-        // 5. Mã hóa mật khẩu mới và lưu xuống DB
         user.setPassword(passwordEncoder.encode(req.getPassword()));
-        userRepository.save(user); // ⚠️ QUAN TRỌNG: Phải có lệnh save()
+        userRepository.save(user);
 
         log.info("Password changed successfully for user: {}", currentUsername);
     }

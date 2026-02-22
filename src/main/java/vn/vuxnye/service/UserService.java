@@ -9,7 +9,6 @@ import vn.vuxnye.dto.response.UserResponse;
 
 public interface UserService {
 
-    // 🟢 THÊM tham số Long roleId
     UserPageResponse findAll(String keyword, Long roleId, UserStatus status, String sort, int page, int size);
 
     UserResponse findById(Long id);

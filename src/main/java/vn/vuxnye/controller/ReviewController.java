@@ -13,10 +13,10 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import vn.vuxnye.common.ResponseAPI;
 import vn.vuxnye.dto.request.ReviewRequest;
 import vn.vuxnye.dto.response.ReviewResponse;
 import vn.vuxnye.service.ReviewService;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -36,12 +36,17 @@ public class ReviewController {
     @PostMapping("/comment")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN', 'STAFF')")
     @Operation(summary = "Submit a review", description = "User creates a review for a purchased product")
-    public Map<String, Object> createReview(
+    public ResponseAPI createReview(
             @Valid @RequestBody ReviewRequest request,
             @AuthenticationPrincipal UserDetails userDetails) {
 
         ReviewResponse response = reviewService.createReview(userDetails, request);
-        return createResponse(HttpStatus.CREATED, "Review submitted successfully", response);
+
+        return ResponseAPI.builder()
+                .status(HttpStatus.CREATED)
+                .message("Review submitted successfully")
+                .data(response)
+                .build();
     }
 
     /**
@@ -50,38 +55,27 @@ public class ReviewController {
      */
     @GetMapping("/product/{productId}")
     @Operation(summary = "Get product reviews", description = "Get list of reviews for a specific product")
-    public Map<String, Object> getProductReviews(
+    public ResponseAPI getProductReviews(
             @PathVariable @Min(1) Long productId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
 
         Page<ReviewResponse> reviews = reviewService.getReviewsByProduct(productId, page, size);
 
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("status", HttpStatus.OK.value());
-        result.put("message", "Get reviews success");
-        result.put("data", reviews.getContent());
-        result.put("pagination", Map.of(
+        // Đóng gói cả danh sách nội dung và phân trang vào chung một Map
+        Map<String, Object> responseData = new LinkedHashMap<>();
+        responseData.put("items", reviews.getContent());
+        responseData.put("pagination", Map.of(
                 "page", reviews.getNumber() + 1,
                 "size", reviews.getSize(),
                 "totalElements", reviews.getTotalElements(),
                 "totalPages", reviews.getTotalPages()
         ));
-        return result;
-    }
 
-    private Map<String, Object> createResponse(HttpStatus status, String message, Object data) {
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("status", status.value());
-        result.put("message", message);
-        result.put("data", data);
-        return result;
-    }
-
-    @ExceptionHandler(RuntimeException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, Object> handleBadRequest(RuntimeException ex) {
-        return createResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
+        return ResponseAPI.builder()
+                .status(HttpStatus.OK)
+                .message("Get reviews success")
+                .data(responseData) // Đưa Map vào trường data
+                .build();
     }
 }
-//

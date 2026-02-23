@@ -23,5 +23,4 @@ public interface ServiceRepository extends JpaRepository<ServiceEntity, Long> {
             Pageable pageable
     );
 
-    boolean existsByName(String name);
 }

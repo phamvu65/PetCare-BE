@@ -1,20 +1,15 @@
 package vn.vuxnye.controller;
 
-import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import vn.vuxnye.common.ResponseAPI;
 import vn.vuxnye.dto.request.ServiceRequest;
 import vn.vuxnye.dto.response.ServicePageResponse;
-import vn.vuxnye.dto.response.ServiceResponse;
 import vn.vuxnye.service.ServiceService;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/services")
@@ -25,51 +20,60 @@ public class ServiceController {
     private final ServiceService serviceService;
 
     @GetMapping("/list")
-    public Map<String, Object> getAllServices(
+    public ResponseAPI getAllServices(
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false, defaultValue = "true") Boolean active, // 👈 Thêm cái này
+            @RequestParam(required = false, defaultValue = "true") Boolean active,
             @RequestParam(required = false, defaultValue = "id:desc") String sort,
             @RequestParam(required = false, defaultValue = "1") int page,
             @RequestParam(required = false, defaultValue = "10") int size) {
 
         ServicePageResponse pageResponse = serviceService.findAll(keyword, active, sort, page, size);
 
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("status", HttpStatus.OK.value());
-        result.put("message", "Get services success");
-        result.put("data", pageResponse);
-        return result;
+        return ResponseAPI.builder()
+                .status(HttpStatus.OK)
+                .message("Get services success")
+                .data(pageResponse)
+                .build();
     }
 
     @GetMapping("/{serviceId}")
-    public Map<String, Object> getServiceById(@PathVariable Long serviceId) {
-        return createResponse(HttpStatus.OK, "Success", serviceService.findById(serviceId));
+    public ResponseAPI getServiceById(@PathVariable Long serviceId) {
+        return ResponseAPI.builder()
+                .status(HttpStatus.OK)
+                .message("Success")
+                .data(serviceService.findById(serviceId))
+                .build();
     }
 
     @PostMapping("/add")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public Map<String, Object> createService(@Valid @RequestBody ServiceRequest request) {
-        return createResponse(HttpStatus.CREATED, "Created", serviceService.create(request));
+    public ResponseAPI createService(@Valid @RequestBody ServiceRequest request) {
+        return ResponseAPI.builder()
+                .status(HttpStatus.CREATED)
+                .message("Created")
+                .data(serviceService.create(request))
+                .build();
     }
 
     @PutMapping("/upd/{id}")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public Map<String, Object> updateService(@PathVariable Long id, @Valid @RequestBody ServiceRequest request) {
-        return createResponse(HttpStatus.OK, "Updated", serviceService.update(id, request));
+    public ResponseAPI updateService(@PathVariable Long id, @Valid @RequestBody ServiceRequest request) {
+        return ResponseAPI.builder()
+                .status(HttpStatus.OK)
+                .message("Updated")
+                .data(serviceService.update(id, request))
+                .build();
     }
 
     @DeleteMapping("/del/{id}")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-    public Map<String, Object> deleteService(@PathVariable Long id) {
+    public ResponseAPI deleteService(@PathVariable Long id) {
         serviceService.delete(id);
-        return createResponse(HttpStatus.OK, "Deleted (Soft)", null);
-    }
 
-    private Map<String, Object> createResponse(HttpStatus status, String message, Object data) {
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("status", status.value());
-        result.put("message", message);
-        result.put("data", data);
-        return result;
+        return ResponseAPI.builder()
+                .status(HttpStatus.OK)
+                .message("Deleted (Soft)")
+                .data(null)
+                .build();
     }
 }

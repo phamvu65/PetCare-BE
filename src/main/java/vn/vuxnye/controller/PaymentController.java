@@ -3,7 +3,7 @@ package vn.vuxnye.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse; // Import thêm
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +18,7 @@ import vn.vuxnye.dto.request.PaymentRequest;
 import vn.vuxnye.dto.response.PaymentResponse;
 import vn.vuxnye.service.PaymentService;
 
-import java.io.IOException; // Import thêm
+import java.io.IOException;
 import java.util.*;
 
 @RestController
@@ -141,9 +141,4 @@ public class PaymentController {
         return result;
     }
 
-    @ExceptionHandler(RuntimeException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, Object> handleBadRequest(RuntimeException ex) {
-        return createResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
-    }
 }

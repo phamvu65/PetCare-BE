@@ -150,9 +150,4 @@ public class OrderController {
         return result;
     }
 
-    @ExceptionHandler(RuntimeException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, Object> handleBadRequest(RuntimeException ex) {
-        return createResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
-    }
 }

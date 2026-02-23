@@ -7,13 +7,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import vn.vuxnye.common.ResponseAPI;
 import vn.vuxnye.dto.request.CouponRequest;
 import vn.vuxnye.dto.response.CouponResponse;
 import vn.vuxnye.service.CouponService;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/coupons")
@@ -28,57 +27,78 @@ public class CouponController {
     @GetMapping("/admin")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Admin: Get all coupons")
-    public Map<String, Object> getAllCoupons() {
+    public ResponseAPI getAllCoupons() {
         List<CouponResponse> coupons = couponService.findAll();
-        return createResponse(HttpStatus.OK, "Get all coupons success", coupons);
+
+        return ResponseAPI.builder()
+                .status(HttpStatus.OK)
+                .message("Get all coupons success")
+                .data(coupons)
+                .build();
     }
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Admin: Create coupon")
-    public Map<String, Object> createCoupon(@Valid @RequestBody CouponRequest request) {
+    public ResponseAPI createCoupon(@Valid @RequestBody CouponRequest request) {
         CouponResponse response = couponService.create(request);
-        return createResponse(HttpStatus.CREATED, "Create coupon success", response);
+
+        return ResponseAPI.builder()
+                .status(HttpStatus.CREATED)
+                .message("Create coupon success")
+                .data(response)
+                .build();
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Admin: Update coupon")
-    public Map<String, Object> updateCoupon(@PathVariable Long id, @Valid @RequestBody CouponRequest request) {
+    public ResponseAPI updateCoupon(@PathVariable Long id, @Valid @RequestBody CouponRequest request) {
         CouponResponse response = couponService.update(id, request);
-        return createResponse(HttpStatus.OK, "Update coupon success", response);
+
+        return ResponseAPI.builder()
+                .status(HttpStatus.OK)
+                .message("Update coupon success")
+                .data(response)
+                .build();
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Admin: Delete coupon")
-    public Map<String, Object> deleteCoupon(@PathVariable Long id) {
+    public ResponseAPI deleteCoupon(@PathVariable Long id) {
         couponService.delete(id);
-        return createResponse(HttpStatus.NO_CONTENT, "Delete coupon success", null);
+
+        return ResponseAPI.builder()
+                .status(HttpStatus.OK) // Đổi từ NO_CONTENT sang OK để giữ lại Body JSON
+                .message("Delete coupon success")
+                .data(null)
+                .build();
     }
 
     // --- USER APIs ---
 
     @GetMapping("/public/valid")
     @Operation(summary = "Get valid coupons", description = "List coupons available for use")
-    public Map<String, Object> getValidCoupons() {
+    public ResponseAPI getValidCoupons() {
         List<CouponResponse> coupons = couponService.getValidCoupons();
-        return createResponse(HttpStatus.OK, "Get valid coupons success", coupons);
+
+        return ResponseAPI.builder()
+                .status(HttpStatus.OK)
+                .message("Get valid coupons success")
+                .data(coupons)
+                .build();
     }
 
     @GetMapping("/check/{code}")
     @Operation(summary = "Check coupon details by code")
-    public Map<String, Object> checkCoupon(@PathVariable String code) {
+    public ResponseAPI checkCoupon(@PathVariable String code) {
         CouponResponse coupon = couponService.getByCode(code);
-        return createResponse(HttpStatus.OK, "Coupon found", coupon);
-    }
 
-    // Helper
-    private Map<String, Object> createResponse(HttpStatus status, String message, Object data) {
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("status", status.value());
-        result.put("message", message);
-        result.put("data", data);
-        return result;
+        return ResponseAPI.builder()
+                .status(HttpStatus.OK)
+                .message("Coupon found")
+                .data(coupon)
+                .build();
     }
 }

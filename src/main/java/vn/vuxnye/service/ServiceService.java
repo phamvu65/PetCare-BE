@@ -6,7 +6,6 @@ import vn.vuxnye.dto.response.ServiceResponse;
 
 public interface ServiceService {
 
-    // Thêm tham số boolean active
     ServicePageResponse findAll(String keyword, Boolean active, String sort, int page, int size);
 
     ServiceResponse findById(Long id);

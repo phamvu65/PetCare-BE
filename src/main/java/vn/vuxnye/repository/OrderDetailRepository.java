@@ -15,9 +15,7 @@ import java.util.List;
 @Repository
 public interface OrderDetailRepository extends JpaRepository<OrderDetailEntity, Long> {
 
-    List<OrderDetailEntity> findByProductId(Long productId);
 
-    // 🟢 SỬA LỖI: Thêm tham số od.product.stock vào cuối để khớp với Constructor 7 tham số
     @Query("SELECT new vn.vuxnye.dto.response.ProductStatsResponse(" +
             "od.product.id, " +
             "od.product.name, " +
@@ -25,7 +23,7 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetailEntity, 
             "od.product.price, " +
             "SUM(od.qty), " +
             "SUM(od.qty * od.unitPrice), " +
-            "od.product.stock" + // ✅ THÊM DÒNG NÀY
+            "od.product.stock" +
             ") " +
             "FROM OrderDetailEntity od " +
             "JOIN od.order o " +
@@ -33,7 +31,7 @@ public interface OrderDetailRepository extends JpaRepository<OrderDetailEntity, 
             "WHERE o.status = :status " +
             "AND (:startDate IS NULL OR o.createdAt >= :startDate) " +
             "AND (:endDate IS NULL OR o.createdAt <= :endDate) " +
-            "GROUP BY od.product.id, od.product.name, c.name, od.product.price, od.product.stock " + // ✅ Group By thêm stock
+            "GROUP BY od.product.id, od.product.name, c.name, od.product.price, od.product.stock " +
             "ORDER BY SUM(od.qty) DESC")
     List<ProductStatsResponse> findTopSellingProducts(
             @Param("status") OrderStatus status,

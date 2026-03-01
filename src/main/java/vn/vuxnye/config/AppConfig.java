@@ -89,7 +89,6 @@ public class AppConfig {
         };
     }
 
-    // 🟢 THÊM MỚI
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();

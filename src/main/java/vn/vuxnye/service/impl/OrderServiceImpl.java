@@ -148,9 +148,7 @@ public class OrderServiceImpl implements OrderService {
                         .build())
                 .collect(Collectors.toList());
 
-        // ==========================================================
-        // 🟢 E. [MỚI] TOP DỊCH VỤ & TOP NHÂN VIÊN
-        // ==========================================================
+
         List<ServiceStatsResponse> topServices = appointmentRepository.findTopServices(
                 AppointmentStatus.DONE, startLocal, endLocal, PageRequest.of(0, 5)
         );
@@ -159,9 +157,6 @@ public class OrderServiceImpl implements OrderService {
                 AppointmentStatus.DONE, startLocal, endLocal, PageRequest.of(0, 5)
         );
 
-        // ==========================================================
-        // BUILD RESPONSE
-        // ==========================================================
         return OrderStatisticResponse.builder()
                 .totalRevenue(orderRevenue.add(serviceRevenue))
                 .totalOrderRevenue(orderRevenue)

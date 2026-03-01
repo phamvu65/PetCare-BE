@@ -59,21 +59,14 @@ public class ReviewServiceImpl implements ReviewService {
 
         // --- PHÂN NHÁNH LOGIC ---
         if (request.getParentId() != null) {
-            // === TRƯỜNG HỢP 1: TRẢ LỜI (REPLY) ===
-            // (Admin trả lời khách, hoặc Khách trả lời Admin)
 
             ProductReviewEntity parentReview = reviewRepository.findById(request.getParentId())
                     .orElseThrow(() -> new ResourceNotFoundException("Review gốc không tồn tại"));
 
-            // Logic quyền hạn (Optional):
-            // - Admin được reply tất cả.
-            // - User chỉ được reply vào luồng mà họ đã tham gia? (Tùy nghiệp vụ, ở đây mở cho reply thoải mái)
-
             review.setParent(parentReview);
-            review.setRating(null); // Reply không có rating
+            review.setRating(null);
 
         } else {
-            // === TRƯỜNG HỢP 2: ĐÁNH GIÁ MỚI (ROOT) ===
 
             // 1. Validate Rating
             if (request.getRating() == null || request.getRating() < 1 || request.getRating() > 5) {
@@ -114,10 +107,7 @@ public class ReviewServiceImpl implements ReviewService {
         return reviewPage.map(ReviewResponse::fromEntity);
     }
 
-    // ... (Helper methods giữ nguyên: updateProductRating, containsBadWords)
-
     private void updateProductRating(ProductEntity product) {
-        // (Logic cũ)
     }
 
     private boolean containsBadWords(String comment) {

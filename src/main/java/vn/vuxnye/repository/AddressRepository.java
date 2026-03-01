@@ -20,10 +20,6 @@ public interface AddressRepository extends JpaRepository<AddressEntity,Long> {
 
     List<AddressEntity> findByUserIdAndIdNot(Long userId, Long addressId);
 
-    /**
-     * (Dùng cho logic 'isDefault')
-     * Hủy (set false) tất cả địa chỉ mặc định cũ của một User
-     */
     @Modifying
     @Query("UPDATE AddressEntity a SET a.isDefault = false WHERE a.user.id = :userId AND a.isDefault = true")
     void clearOldDefaults(Long userId);

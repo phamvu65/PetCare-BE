@@ -8,7 +8,6 @@ import vn.vuxnye.repository.UserRepository;
 @Service
 public record UserServiceDetail(UserRepository userRepository) {
 
-    // Giữ nguyên tên hàm này để các chỗ khác gọi không bị lỗi
     public UserDetailsService UserServiceDetail() {
         return username -> userRepository.findByUsernameOrEmail(username, username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));

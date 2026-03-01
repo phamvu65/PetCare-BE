@@ -12,11 +12,16 @@ public interface UserService {
     UserPageResponse findAll(String keyword, Long roleId, UserStatus status, String sort, int page, int size);
 
     UserResponse findById(Long id);
+
     UserResponse findByUsername(String username);
-    UserResponse findByEmail(String email);
+
     Long save(UserCreationRequest req);
+
     void update(UserUpdateRequest req);
+
     void changePassword(UserPasswordRequest req);
+
     void delete(Long id);
+
     void restore(Long id);
 }

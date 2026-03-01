@@ -49,10 +49,7 @@ public class OrderController {
         return createResponse(HttpStatus.OK, "Get statistics success", stats);
     }
 
-    /**
-     * 🟢 2. ADMIN ANALYTICS: Lấy chi tiết thống kê sản phẩm (Trang ProductSales)
-     * Hỗ trợ phân trang, sắp xếp theo doanh thu hoặc số lượng bán
-     */
+
     @GetMapping("/product-stats")
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @Operation(summary = "Get detailed product sales statistics")

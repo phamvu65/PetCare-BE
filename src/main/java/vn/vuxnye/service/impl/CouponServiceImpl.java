@@ -24,7 +24,6 @@ public class CouponServiceImpl implements CouponService {
     @Override
     @Transactional(readOnly = true)
     public List<CouponResponse> findAll() {
-        // 🟢 MAP THÊM usedCount VÀO RESPONSE
         return couponRepository.findAll().stream()
                 .map(entity -> {
                     CouponResponse response = CouponResponse.fromEntity(entity);

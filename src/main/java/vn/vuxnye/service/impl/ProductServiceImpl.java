@@ -41,8 +41,7 @@ public class ProductServiceImpl implements ProductService {
 
         boolean deletedStatus = (isDeleted != null) ? isDeleted : false;
 
-        // 🟢 CẬP NHẬT: Chỉ thêm dấu %, KHÔNG dùng toLowerCase() nữa
-        // Để MySQL tự xử lý việc so sánh hoa/thường
+
         String searchKeyword = null;
         if (StringUtils.hasLength(keyword)) {
             searchKeyword = "%" + keyword.trim() + "%";

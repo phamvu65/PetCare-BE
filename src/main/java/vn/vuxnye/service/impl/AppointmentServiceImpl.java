@@ -109,9 +109,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         return AppointmentResponse.fromEntity(saved);
     }
 
-    // =========================================================================
-    // HÀM UPDATE (TỰ ĐỘNG GÁN STAFF)
-    // =========================================================================
+
     @Override
     public AppointmentResponse update(Long id, AppointmentRequest request, UserDetails userDetails) {
         log.info("Updating appointment id: {} by user: {}", id, userDetails.getUsername());
@@ -205,7 +203,6 @@ public class AppointmentServiceImpl implements AppointmentService {
                         role.getAuthority().equals("ROLE_STAFF"));
     }
 
-    // 🟢 ĐÂY LÀ HÀM BẠN ĐANG THIẾU
     private boolean isStaffRole(UserDetails userDetails) {
         return userDetails.getAuthorities().stream()
                 .anyMatch(role -> role.getAuthority().equals("ROLE_STAFF"));

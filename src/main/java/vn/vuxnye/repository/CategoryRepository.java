@@ -11,9 +11,6 @@ import vn.vuxnye.model.CategoryEntity;
 @Repository
 public interface CategoryRepository extends JpaRepository<CategoryEntity, Long> {
 
-    /**
-     * Search category by name
-     */
     @Query("SELECT c FROM CategoryEntity c WHERE " +
             "(:keyword IS NULL OR :keyword = '' OR " +
             "LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')))")

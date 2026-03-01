@@ -10,9 +10,7 @@ import java.util.Optional;
 @Repository
 public interface PaymentRepository extends JpaRepository<PaymentEntity, Long> {
 
-    // Tìm lịch sử thanh toán của 1 đơn hàng
     List<PaymentEntity> findByOrderId(Long orderId);
 
-    // Tìm giao dịch thành công
     Optional<PaymentEntity> findFirstByOrderIdAndPaidAtIsNotNullOrderByPaidAtDesc(Long orderId);
 }

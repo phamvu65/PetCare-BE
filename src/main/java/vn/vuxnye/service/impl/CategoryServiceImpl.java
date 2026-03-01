@@ -33,7 +33,6 @@ public class CategoryServiceImpl implements CategoryService {
     public CategoryPageResponse findAll(String keyword, String sort, int page, int size) {
         log.info("Find all categories with keyword: {}", keyword);
 
-        // (Logic sort giữ nguyên)
         Sort.Order order = new Sort.Order(Sort.Direction.ASC, "id");
         if (StringUtils.hasLength(sort)) {
             Pattern pattern = Pattern.compile("(\\w+?)(:)(.*)");

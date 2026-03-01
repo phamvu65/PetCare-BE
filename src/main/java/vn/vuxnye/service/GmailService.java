@@ -21,11 +21,9 @@ public class GmailService {
     @Value("${spring.mail.username}")
     private String senderEmail;
 
-    // Link Frontend (để người dùng bấm vào quay lại trang web)
-    // Bạn nhớ thay đổi port nếu React của bạn chạy port khác (ví dụ 3000)
     private final String frontendUrl = "http://localhost:5173";
 
-    @Async // Chạy ngầm để không làm đơ giao diện
+    @Async
     public void sendResetPasswordEmail(String toEmail, String token) {
         log.info("Đang gửi mail reset pass tới: {}", toEmail);
 

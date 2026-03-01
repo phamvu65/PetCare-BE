@@ -43,14 +43,6 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
             "WHERE a.customer.username = :username")
     List<AppointmentEntity> findByCustomerUsername(@Param("username") String username);
 
-    @Query(value = "SELECT a FROM AppointmentEntity a " +
-            "JOIN FETCH a.customer " +
-            "JOIN FETCH a.pet " +
-            "JOIN FETCH a.service " +
-            "LEFT JOIN FETCH a.staff " +
-            "WHERE a.status = :status",
-            countQuery = "SELECT COUNT(a) FROM AppointmentEntity a WHERE a.status = :status")
-    Page<AppointmentEntity> findByStatus(@Param("status") AppointmentStatus status, Pageable pageable);
 
     @Query("SELECT a FROM AppointmentEntity a WHERE " +
             "(:customerId IS NULL OR a.customer.id = :customerId) AND " +

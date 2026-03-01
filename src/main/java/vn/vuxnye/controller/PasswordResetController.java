@@ -41,8 +41,6 @@ public class PasswordResetController {
     public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
         String email = request.get("email");
 
-        // 🟢 SỬA LẠI ĐOẠN NÀY ĐỂ KHỚP VỚI REPO CŨ CỦA BẠN
-        // Vì repository trả về UserEntity (có thể null), không phải Optional
         UserEntity user = userRepository.findByEmail(email);
 
         if (user == null) {

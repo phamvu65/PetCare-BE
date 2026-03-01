@@ -6,5 +6,4 @@ import vn.vuxnye.model.OrderCouponEntity;
 
 @Repository
 public interface OrderCouponRepository extends JpaRepository<OrderCouponEntity, Long> {
-    // Hiện tại chưa cần query gì phức tạp, JpaRepository có sẵn hàm save() là đủ.
 }

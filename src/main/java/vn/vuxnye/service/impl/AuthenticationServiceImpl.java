@@ -54,13 +54,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
 
         // 2. Lấy thông tin User từ DB
-        // 🔴 ĐÃ SỬA: Tìm bằng cả Username HOẶC Email để tránh lỗi "User not found"
+
         var user = userRepository.findByUsernameOrEmail(request.getUsername(), request.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         // 3. Tạo token
-        // 🟢 LƯU Ý: Dùng user.getUsername() (tên chuẩn trong DB) thay vì request.getUsername() (input người dùng nhập)
-        // Để token luôn chứa username chuẩn, dù họ đăng nhập bằng email.
         String accessToken = jwtService.generateAccessToken(
                 user.getId(),
                 user.getUsername(),

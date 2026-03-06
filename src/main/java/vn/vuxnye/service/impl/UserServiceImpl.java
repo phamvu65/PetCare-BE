@@ -18,7 +18,6 @@ import vn.vuxnye.dto.request.UserUpdateRequest;
 import vn.vuxnye.dto.response.UserPageResponse;
 import vn.vuxnye.dto.response.UserResponse;
 import vn.vuxnye.exception.InvalidDataException;
-import vn.vuxnye.exception.PermissionDenyException;
 import vn.vuxnye.exception.ResourceNotFoundException;
 import vn.vuxnye.model.AddressEntity;
 import vn.vuxnye.model.RoleEntity;
@@ -104,22 +103,6 @@ public class UserServiceImpl implements UserService {
                 .build();
     }
 
-    @Override
-    public UserResponse findByEmail(String email) {
-        UserEntity userEntity = userRepository.findByEmail(email);
-        if(userEntity != null){
-            return UserResponse.builder()
-                    .id(userEntity.getId())
-                    .fistName(userEntity.getFirstName())
-                    .lastName(userEntity.getLastName())
-                    .userName(userEntity.getUsername())
-                    .phone(userEntity.getPhone())
-                    .email(userEntity.getEmail())
-                    .build();
-        } else {
-            throw new ResourceNotFoundException("User not found");
-        }
-    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)

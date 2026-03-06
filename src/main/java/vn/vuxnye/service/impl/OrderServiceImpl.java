@@ -304,14 +304,6 @@ public class OrderServiceImpl implements OrderService {
         return orders.stream().map(order -> OrderResponse.fromEntity(order, order.getTotalAmount())).collect(Collectors.toList());
     }
 
-    @Override
-    public OrderResponse getOrderById(Long id, UserDetails userDetails) {
-        OrderEntity order = orderRepository.findByIdWithDetails(id).orElseThrow(() -> new ResourceNotFoundException("Order not found"));
-        if (!order.getCustomer().getUsername().equals(userDetails.getUsername())) {
-            throw new ResourceNotFoundException("Order not found with id: " + id);
-        }
-        return OrderResponse.fromEntity(order, order.getTotalAmount());
-    }
 
     @Override
     public OrderResponse updateOrderStatus(Long orderId, OrderStatus newStatus, UserDetails userDetails) {

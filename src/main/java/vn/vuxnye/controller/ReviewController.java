@@ -75,7 +75,7 @@ public class ReviewController {
         return ResponseAPI.builder()
                 .status(HttpStatus.OK)
                 .message("Get reviews success")
-                .data(responseData) // Đưa Map vào trường data
+                .data(responseData)
                 .build();
     }
 }

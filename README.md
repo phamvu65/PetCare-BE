@@ -34,18 +34,7 @@ Tài liệu API: Swagger UI / OpenAPI 3.0
 
 External APIs: VNPay Payment Gateway, Google Gemini AI
 
-🗄 Cấu trúc thư mục (Project Structure)
 
-Dự án được tổ chức theo kiến trúc phân tầng (Layered Architecture) chuẩn mực:
-
-src/main/java/vn/vuxnye/petcare/
- ├── config/        # Cấu hình Security, Swagger, VNPay, AI
- ├── controller/    # Các API Endpoint (@RestController)
- ├── dto/           # Đối tượng truyền tải dữ liệu (Request/Response)
- ├── entity/        # Các lớp ánh xạ với CSDL (@Entity)
- ├── exception/     # Xử lý lỗi tập trung (GlobalExceptionHandler)
- ├── repository/    # Giao tiếp với CSDL (Kế thừa JpaRepository)
- └── service/       # Chứa logic nghiệp vụ lõi (Business Logic)
 
 
 ⚙️ Hướng dẫn cài đặt & Chạy dự án (Getting Started)

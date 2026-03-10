@@ -1,26 +1,25 @@
-🐾 PetCare - Nền tảng Thương mại điện tử & Dịch vụ Thú cưng
+ PetCare - Nền tảng Thương mại điện tử & Dịch vụ Thú cưng
 
-📖 Giới thiệu (Overview)
+Giới thiệu (Overview)
 
 PetCare là hệ thống Backend cung cấp các API RESTful cho một nền tảng thương mại điện tử kết hợp đặt lịch dịch vụ chăm sóc thú cưng (Spa, Cắt tỉa lông, Khám bệnh).
 
 Dự án được xây dựng với mục tiêu xử lý các luồng nghiệp vụ phức tạp trong thực tế như: quản lý vòng đời đơn hàng, giải quyết bài toán chống trùng lịch hẹn (double-booking), tối ưu hóa truy vấn cơ sở dữ liệu và tích hợp các dịch vụ bên thứ ba.
 
-🚀 Tính năng nổi bật & Thành tựu Kỹ thuật
+ Tính năng nổi bật & Thành tựu Kỹ thuật
+ Bảo mật & Phân quyền: Xác thực người dùng và phân quyền (Admin, Staff, Customer) sử dụng Spring Security và JWT (JSON Web Token).
 
-🛡️ Bảo mật & Phân quyền: Xác thực người dùng và phân quyền (Admin, Staff, Customer) sử dụng Spring Security và JWT (JSON Web Token).
+Thương mại điện tử: Xây dựng giỏ hàng, đặt hàng, quản lý sản phẩm. Thiết kế CSDL chặt chẽ cho các mối quan hệ Nhiều-Nhiều (N-N) thông qua bảng trung gian có thuộc tính (VD: OrderDetails).
 
-🛍️ Thương mại điện tử: Xây dựng giỏ hàng, đặt hàng, quản lý sản phẩm. Thiết kế CSDL chặt chẽ cho các mối quan hệ Nhiều-Nhiều (N-N) thông qua bảng trung gian có thuộc tính (VD: OrderDetails).
+Hệ thống Đặt lịch (Service Booking): Áp dụng logic quản lý thời gian khắt khe với Instant/LocalDateTime của Java 8+ để kiểm tra khoảng thời gian trống, ngăn chặn xung đột trùng lịch hẹn.
 
-📅 Hệ thống Đặt lịch (Service Booking): Áp dụng logic quản lý thời gian khắt khe với Instant/LocalDateTime của Java 8+ để kiểm tra khoảng thời gian trống, ngăn chặn xung đột trùng lịch hẹn.
+ Thanh toán trực tuyến: Tích hợp cổng thanh toán VNPay, xử lý tạo URL thanh toán an toàn, xác thực chữ ký (Checksum) và cập nhật trạng thái đơn hàng tự động.
 
-💳 Thanh toán trực tuyến: Tích hợp cổng thanh toán VNPay, xử lý tạo URL thanh toán an toàn, xác thực chữ ký (Checksum) và cập nhật trạng thái đơn hàng tự động.
+ Trợ lý ảo AI (Chatbot): Tích hợp Google Gemini AI API ứng dụng kỹ thuật RAG, cho phép AI tư vấn dịch vụ và sản phẩm dựa trên dữ liệu ngữ cảnh thực tế của cửa hàng.
 
-🤖 Trợ lý ảo AI (Chatbot): Tích hợp Google Gemini AI API ứng dụng kỹ thuật RAG, cho phép AI tư vấn dịch vụ và sản phẩm dựa trên dữ liệu ngữ cảnh thực tế của cửa hàng.
+Tối ưu hóa Hiệu năng (Performance Optimization): Xử lý triệt để bài toán N+1 Query kinh điển trong Hibernate bằng kỹ thuật JPQL LEFT JOIN FETCH, kết hợp thiết kế Dynamic Query để phục vụ bộ lọc tìm kiếm linh hoạt.
 
-⚡ Tối ưu hóa Hiệu năng (Performance Optimization): Xử lý triệt để bài toán N+1 Query kinh điển trong Hibernate bằng kỹ thuật JPQL LEFT JOIN FETCH, kết hợp thiết kế Dynamic Query để phục vụ bộ lọc tìm kiếm linh hoạt.
-
-🛠 Công nghệ sử dụng (Tech Stack)
+ Công nghệ sử dụng (Tech Stack)
 
 Ngôn ngữ: Java 17
 
@@ -37,7 +36,7 @@ External APIs: VNPay Payment Gateway, Google Gemini AI
 
 
 
-⚙️ Hướng dẫn cài đặt & Chạy dự án (Getting Started)
+Hướng dẫn cài đặt & Chạy dự án (Getting Started)
 
 1. Yêu cầu môi trường (Prerequisites)
 
@@ -79,7 +78,8 @@ mvn spring-boot:run
 
 Ứng dụng sẽ khởi chạy tại cổng mặc định http://localhost:8080. (Hibernate sẽ tự động gen các bảng dựa theo cấu hình spring.jpa.hibernate.ddl-auto=update).
 
-📚 Tài liệu API (Swagger UI)
+Tài liệu API (Swagger UI)
 
 Sau khi ứng dụng chạy thành công, bạn có thể xem tài liệu API chi tiết và thử nghiệm trực tiếp tại:
-👉 http://localhost:8080/swagger-ui/index.html
+ http://localhost:8080/swagger-ui/index.html
+ Github frontend: https://github.com/phamtung2311/Petcare-FE.git

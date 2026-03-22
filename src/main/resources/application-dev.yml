@@ -4,16 +4,18 @@ spring:
       on-profile: dev
   devtools:
     add-properties: true
+
   datasource:
     url: jdbc:mysql://localhost:3306/pet_care?useUnicode=true&characterEncoding=UTF-8&useSSL=false&connectionCollation=utf8mb4_unicode_ci&allowPublicKeyRetrieval=true
     username: root
     password: 1234
-    hikari: # Connection poll
+    hikari: # Connection pool
       max-lifetime: 300000      # 5 phút
       idle-timeout: 60000       # 1 phút
       validation-timeout: 5000  # 5 giây
       minimum-idle: 5
       maximum-pool-size: 20
+
   jpa:
     show-sql: true
     hibernate:
@@ -22,11 +24,6 @@ spring:
     properties:
       hibernate:
         default_batch_fetch_size: 50
-  sendgrid:
-    api-key: ${SENDGRID_API_KEY:SG.dummy_key_for_testing_only}
-    from-email: phamvu65cs@gmail.com
-    templateId: d-d5d0b72e441f4da8913baf9e330aceeb
-    verificationLink: http://localhost:8080/user/confirm-email
 
   servlet:
     multipart:
@@ -34,10 +31,21 @@ spring:
       max-file-size: 10MB      # Giới hạn kích thước 1 file
       max-request-size: 10MB   # Giới hạn tổng kích thước request (nếu up nhiều file)
 
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
 logging:
   level:
     org.hibernate.orm.jdbc.bind: TRACE
-
 
 springdoc:
   api-docs:
@@ -64,9 +72,13 @@ vnpay:
   return-url: http://localhost:8080/payments/vnpay-return
 
 gemini:
-  api-key: AIzaSyCsFJnWkzK3xzDQqz08FfbWVJv38GOSRzw
+  api-key: ${GEMINI_API_KEY}
 
 cloudinary:
   cloud-name: dwcxk4ihr
   api-key: 542292927643341
-  api-secret: ${CLOUDINARY_API_SECRET:SG.dummy_key_for_testing_only}
+  api-secret: ${CLOUDINARY_API_SECRET}
+
+app:
+  frontend:
+    reset-password-url: "http://localhost:3000/reset-password"

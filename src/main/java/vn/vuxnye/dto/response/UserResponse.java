@@ -10,7 +10,7 @@ import java.io.Serializable;
 @AllArgsConstructor
 public class UserResponse implements Serializable {
     private Long id;
-    private String fistName;
+    private String firstName;
     private String lastName;
     private String userName;
     private String email;

@@ -19,13 +19,13 @@ public class EmailController {
     @GetMapping("/send-email")
     public void sendEmail(@RequestParam String to,@RequestParam String subject,@RequestParam String text) {
         log.info("send email to:{}", to);
-        emailService.send(to, subject, text);
+//        emailService.send(to, subject, text);
         log.info("email sent successfully");
     }
 
     @GetMapping("/verify-email")
     public void emailVerification(@RequestParam String to,@RequestParam String name) throws IOException {
         log.info("Verifying email to:{}", to);
-        emailService.emailValidation(to, name);
+//        emailService.emailValidation(to, name);
     }
 }

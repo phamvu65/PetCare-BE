@@ -38,8 +38,8 @@ import static org.springframework.security.config.http.SessionCreationPolicy.STA
 @EnableMethodSecurity
 public class AppConfig {
 
-    @Value("${spring.sendgrid.api-key}")
-    private String apiKey;
+//    @Value("${spring.sendgrid.api-key}")
+//    private String apiKey;
 
     private final CustomizeRequestFilter requestFilter;
 
@@ -125,8 +125,8 @@ public class AppConfig {
         return new BCryptPasswordEncoder();
     }
 
-    @Bean
-    public SendGrid sendGrid(){
-        return new SendGrid(apiKey);
-    }
+//    @Bean
+//    public SendGrid sendGrid(){
+//        return new SendGrid(apiKey);
+//    }
 }

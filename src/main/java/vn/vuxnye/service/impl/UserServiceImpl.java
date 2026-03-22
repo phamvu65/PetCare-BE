@@ -25,7 +25,6 @@ import vn.vuxnye.model.UserEntity;
 import vn.vuxnye.repository.AddressRepository;
 import vn.vuxnye.repository.RoleRepository;
 import vn.vuxnye.repository.UserRepository;
-import vn.vuxnye.service.EmailService;
 import vn.vuxnye.service.UserService;
 
 import java.util.ArrayList;
@@ -41,7 +40,6 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final AddressRepository addressRepository;
     private final PasswordEncoder passwordEncoder;
-    private final EmailService emailService;
     private final RoleRepository roleRepository;
 
     @Override
@@ -80,7 +78,7 @@ public class UserServiceImpl implements UserService {
         UserEntity userEntity = getUserEntity(id);
         return UserResponse.builder()
                 .id(id)
-                .fistName(userEntity.getFirstName())
+                .firstName(userEntity.getFirstName())
                 .lastName(userEntity.getLastName())
                 .userName(userEntity.getUsername())
                 .phone(userEntity.getPhone())
@@ -95,7 +93,7 @@ public class UserServiceImpl implements UserService {
 
         return UserResponse.builder()
                 .id(userEntity.getId())
-                .fistName(userEntity.getFirstName())
+                .firstName(userEntity.getFirstName())
                 .lastName(userEntity.getLastName())
                 .userName(userEntity.getUsername())
                 .phone(userEntity.getPhone())
@@ -161,12 +159,12 @@ public class UserServiceImpl implements UserService {
             addressRepository.saveAll(addresses);
         }
 
-        // Email logic
-        try {
-            emailService.emailValidation(req.getEmail(), req.getUserName());
-        } catch (Exception e) {
-            log.error("Failed to send email", e);
-        }
+//        // Email logic
+//        try {
+//            emailService.emailValidation(req.getEmail(), req.getUserName());
+//        } catch (Exception e) {
+//            log.error("Failed to send email", e);
+//        }
 
         return user.getId() != null ? user.getId() : 0L ;
     }
@@ -228,7 +226,7 @@ public class UserServiceImpl implements UserService {
     private static UserPageResponse getUserPageResponse(int page, int size, Page<UserEntity> userEntities) {
         List<UserResponse> userList = userEntities.stream().map(entity -> UserResponse.builder()
                 .id(entity.getId())
-                .fistName(entity.getFirstName())
+                .firstName(entity.getFirstName())
                 .lastName(entity.getLastName())
                 .userName(entity.getUsername())
                 .phone(entity.getPhone())

@@ -40,4 +40,28 @@ public class FileUploadController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Upload failed: " + e.getMessage());
         }
     }
+
+    @PostMapping(value = "/upload-base64")
+    @Operation(summary = "Upload Base64 Image", description = "Upload image from base64 string")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> uploadBase64(@RequestBody Map<String, String> request) {
+        try {
+            String base64String = request.get("image");
+            if (base64String == null || base64String.isEmpty()) {
+                return ResponseEntity.badRequest().body("Image data is required");
+            }
+
+            String imageUrl = fileUploadService.uploadBase64(base64String);
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("status", HttpStatus.OK.value());
+            result.put("message", "Upload success");
+            result.put("url", imageUrl);
+
+            return ResponseEntity.ok(result);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Upload failed: " + e.getMessage());
+        }
+    }
 }

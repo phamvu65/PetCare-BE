@@ -53,7 +53,7 @@ public class CartController {
         CartResponse cart = cartService.addToCart(userDetails.getUsername(), request);
 
         return ResponseAPI.builder()
-                .status(HttpStatus.OK) // Có thể để OK hoặc CREATED tùy logic nghiệp vụ của bạn
+                .status(HttpStatus.OK)
                 .message("Item added to cart")
                 .data(cart)
                 .build();

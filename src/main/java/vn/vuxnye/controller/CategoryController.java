@@ -97,7 +97,6 @@ public class CategoryController {
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
-    // Đã gỡ bỏ @ResponseStatus(HttpStatus.NOT_FOUND) để giữ Network Status là 200 OK
     public ResponseAPI handleNotFound(ResourceNotFoundException ex) {
         return ResponseAPI.builder()
                 .status(HttpStatus.NOT_FOUND)

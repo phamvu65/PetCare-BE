@@ -21,7 +21,7 @@ public class CloudinaryServiceImpl implements FileUploadService {
 
     @Override
     public String uploadImage(MultipartFile file) throws IOException {
-        // Tạo tên file ngẫu nhiên để tránh trùng
+
         String fileName = UUID.randomUUID().toString();
 
         // Upload lên Cloudinary
@@ -54,6 +54,25 @@ public class CloudinaryServiceImpl implements FileUploadService {
 
         String secureUrl = uploadResult.get("secure_url").toString();
         log.info("Uploaded from URL successfully: {}", secureUrl);
+
+        return secureUrl;
+    }
+
+
+    @Override
+    public String uploadBase64(String base64String) throws IOException {
+        String fileName = UUID.randomUUID().toString();
+
+        Map params = ObjectUtils.asMap(
+                "public_id", fileName,
+                "folder", "pet_care_products",
+                "resource_type", "image"
+        );
+
+        Map uploadResult = cloudinary.uploader().upload(base64String, params);
+
+        String secureUrl = uploadResult.get("secure_url").toString();
+        log.info("Base64 image uploaded successfully: {}", secureUrl);
 
         return secureUrl;
     }

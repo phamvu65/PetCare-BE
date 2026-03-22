@@ -101,7 +101,6 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional(readOnly = true)
     public Page<ReviewResponse> getReviewsByProduct(Long productId, int page, int size) {
-        // ... (Code cũ)
         Pageable pageable = PageRequest.of(page > 0 ? page - 1 : 0, size);
         Page<ProductReviewEntity> reviewPage = reviewRepository.findByProductId(productId, pageable);
         return reviewPage.map(ReviewResponse::fromEntity);

@@ -9,11 +9,11 @@ import java.util.Map;
 
 @Getter
 @Builder
-public class ResponseAPI {
+public class ResponseAPI implements java.io.Serializable{
 
-    private Map<String, Object> response = new LinkedHashMap<>();
+//    private Map<String, Object> response = new LinkedHashMap<>();
     private HttpStatus status = HttpStatus.OK;
     private String message = "Success";
-    private Object data;
+    private transient Object data;
 
 }

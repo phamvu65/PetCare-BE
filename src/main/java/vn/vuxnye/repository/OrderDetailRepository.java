@@ -13,7 +13,7 @@ import java.time.Instant;
 import java.util.List;
 
 @Repository
-public interface OrderDetailRepository extends JpaRepository<OrderDetailEntity, Long> {
+public interface  OrderDetailRepository extends JpaRepository<OrderDetailEntity, Long> {
 
 
     @Query("SELECT new vn.vuxnye.dto.response.ProductStatsResponse(" +

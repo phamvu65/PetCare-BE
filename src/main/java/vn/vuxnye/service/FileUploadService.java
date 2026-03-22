@@ -6,4 +6,5 @@ import java.io.IOException;
 public interface FileUploadService {
     String uploadImage(MultipartFile file) throws IOException;
     String uploadFromUrl(String url) throws IOException;
+    String uploadBase64(String base64) throws IOException;
 }

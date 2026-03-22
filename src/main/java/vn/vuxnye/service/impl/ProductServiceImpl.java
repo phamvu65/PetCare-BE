@@ -18,6 +18,7 @@ import vn.vuxnye.model.ProductEntity;
 import vn.vuxnye.model.ProductImageEntity;
 import vn.vuxnye.repository.CategoryRepository;
 import vn.vuxnye.repository.ProductRepository;
+import vn.vuxnye.service.FileUploadService;
 import vn.vuxnye.service.ProductService;
 
 import java.util.ArrayList;
@@ -33,6 +34,7 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final FileUploadService fileUploadService;
 
     @Override
     @Transactional(readOnly = true)
@@ -109,11 +111,21 @@ public class ProductServiceImpl implements ProductService {
 
         if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
             List<ProductImageEntity> images = new ArrayList<>();
-            for (String url : request.getImageUrls()) {
-                ProductImageEntity img = new ProductImageEntity();
-                img.setProduct(product);
-                img.setImageUrl(url);
-                images.add(img);
+            for (String rawData : request.getImageUrls()) {
+                try {
+                    String finalUrl;
+                    if (rawData.startsWith("data:image")) {
+                        finalUrl = fileUploadService.uploadBase64(rawData);
+                    } else {
+                        finalUrl = fileUploadService.uploadFromUrl(rawData);
+                    }
+                    ProductImageEntity img = new ProductImageEntity();
+                    img.setProduct(product);
+                    img.setImageUrl(finalUrl);
+                    images.add(img);
+                } catch (Exception e) {
+                    log.error("Failed to upload image: {}", e.getMessage());
+                }
             }
             product.setImages(images);
         }

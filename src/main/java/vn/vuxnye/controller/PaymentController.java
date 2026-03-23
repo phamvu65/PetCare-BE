@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -31,7 +32,8 @@ public class PaymentController {
     private final PaymentService paymentService;
     private final VnPayConfig vnPayConfig;
 
-    private static final String FRONTEND_URL = "http://localhost:5173/payment-result";
+    @Value("${FRONTEND_URL:http://localhost:5173}")
+    private String frontendBaseUrl;
 
     @PostMapping("/create")
     @PreAuthorize("hasRole('CUSTOMER')")
@@ -66,11 +68,15 @@ public class PaymentController {
 
     /**
      * API Return URL từ VNPay
-     * Thay đổi: Dùng HttpServletResponse để Redirect về Frontend
+     * Thay đổi: Redirect động về Frontend dựa trên cấu hình môi trường
      */
     @GetMapping("/vnpay-return")
     @Operation(summary = "VNPay Return URL")
     public void vnpayReturn(HttpServletRequest request, HttpServletResponse response) throws IOException {
+
+        // Tạo đường link đích để Redirect khách hàng về đúng trang web
+        String redirectUrl = frontendBaseUrl + "/payment-result";
+
         Map<String, String> fields = new HashMap<>();
         for (Enumeration<String> params = request.getParameterNames(); params.hasMoreElements();) {
             String fieldName = params.nextElement();
@@ -101,14 +107,14 @@ public class PaymentController {
                 paymentService.handlePaymentSuccess(orderId, txnRef);
 
                 // Redirect về Frontend kèm trạng thái success
-                response.sendRedirect(FRONTEND_URL + "?status=success&orderId=" + orderId);
+                response.sendRedirect(redirectUrl + "?status=success&orderId=" + orderId);
             } else {
                 // --- THANH TOÁN THẤT BẠI ---
-                response.sendRedirect(FRONTEND_URL + "?status=failed&orderId=" + orderId + "&message=" + request.getParameter("vnp_ResponseCode"));
+                response.sendRedirect(redirectUrl + "?status=failed&orderId=" + orderId + "&message=" + request.getParameter("vnp_ResponseCode"));
             }
         } else {
             // --- SAI CHỮ KÝ ---
-            response.sendRedirect(FRONTEND_URL + "?status=failed&message=Checksum_failed");
+            response.sendRedirect(redirectUrl + "?status=failed&message=Checksum_failed");
         }
     }
 

@@ -22,7 +22,6 @@ import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -76,41 +75,34 @@ public class PaymentServiceImpl implements PaymentService {
         return mapToResponse(savedPayment, message, paymentUrl);
     }
 
-    // --- [HOÀN THIỆN] Xử lý khi thanh toán thành công ---
     @Override
     public void handlePaymentSuccess(Long orderId, String transactionCode) {
         log.info("Processing payment success callback for order: {}", orderId);
 
-        // 1. Tìm đơn hàng
         OrderEntity order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
-        // 2. Kiểm tra idempotency (tránh xử lý 2 lần nếu VNPay gọi callback nhiều lần)
         if (order.getStatus() == OrderStatus.PAID) {
             log.info("Order {} is already PAID, skipping update.", orderId);
             return;
         }
 
-        // 3. Cập nhật trạng thái đơn hàng -> PAID
-        // Chỉ cập nhật nếu đang PENDING (hoặc SHIPPING nếu cho phép trả sau)
         if (order.getStatus() == OrderStatus.PENDING) {
             order.setStatus(OrderStatus.PAID);
             orderRepository.save(order);
             log.info("Updated order {} status to PAID.", orderId);
         }
 
-        // 4. Lưu lịch sử thanh toán (Ghi nhận giao dịch thành công)
         PaymentEntity payment = new PaymentEntity();
         payment.setOrder(order);
         payment.setAmount(order.getTotalAmount());
-        payment.setMethod(PaymentMethod.E_WALLET); // VNPay là E_WALLET/CARD
-        payment.setPaidAt(LocalDateTime.now()); // Quan trọng: Đánh dấu thời gian đã trả
+        payment.setMethod(PaymentMethod.E_WALLET);
+        payment.setPaidAt(LocalDateTime.now());
         payment.setNote("VNPay Success. TransRef: " + transactionCode);
 
         paymentRepository.save(payment);
     }
 
-    // --- [MỚI] Lấy lịch sử thanh toán ---
     @Override
     @Transactional(readOnly = true)
     public List<PaymentResponse> getPaymentHistory(Long orderId, UserDetails userDetails) {
@@ -123,7 +115,6 @@ public class PaymentServiceImpl implements PaymentService {
                 .collect(Collectors.toList());
     }
 
-    // --- [MỚI] Lấy thông tin giao dịch thành công ---
     @Override
     @Transactional(readOnly = true)
     public PaymentResponse getSuccessPayment(Long orderId, UserDetails userDetails) {
@@ -135,13 +126,11 @@ public class PaymentServiceImpl implements PaymentService {
         return mapToResponse(successPayment, "Payment Successful", null);
     }
 
-    // --- Helper Methods ---
 
     private OrderEntity checkOrderOwnership(Long orderId, UserDetails userDetails) {
         OrderEntity order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
 
-        // Chỉ cho phép Chủ đơn hàng hoặc Admin xem
         boolean isAdmin = userDetails.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_STAFF"));
 
@@ -163,7 +152,6 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private String createVnPayUrl(OrderEntity order) {
-        // (Giữ nguyên logic tạo URL VNPay của bạn)
         String vnp_Version = "2.1.0";
         String vnp_Command = "pay";
         String vnp_OrderInfo = "Thanh toan don hang " + order.getId();
@@ -186,8 +174,12 @@ public class PaymentServiceImpl implements PaymentService {
         vnp_Params.put("vnp_ReturnUrl", vnPayConfig.getVnp_ReturnUrl());
         vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
 
-        Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Etc/GMT+7"));
+        TimeZone tz = TimeZone.getTimeZone("Asia/Ho_Chi_Minh");
+        Calendar cld = Calendar.getInstance(tz);
+
         SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
+        formatter.setTimeZone(tz); // Bắt buộc set timezone cho formatter để tránh lấy giờ server
+
         String vnp_CreateDate = formatter.format(cld.getTime());
         vnp_Params.put("vnp_CreateDate", vnp_CreateDate);
 

@@ -78,7 +78,7 @@ public class AppConfig {
                 "http://localhost:3000",
                 "http://127.0.0.1:3000",
                 "http://localhost:5173",
-                "https://vuxph.xyz",
+                "https://pet.vuxph.xyz",
                 "https://www.vuxph.xyz",
                 frontendUrl
         ));
